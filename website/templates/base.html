@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitabi - Your Online Bookstore</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-book-open text-primary"></i>
+                <span class="font-weight-bold ml-2">Kitabi</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <form class="form-inline mx-auto w-50">
+                    <div class="input-group w-100">
+                        <input type="text" class="form-control" placeholder="Search for books...">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fas fa-user"></i> Account</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="badge badge-primary">3</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="container h-100">
+            <div class="row h-100 align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 text-white font-weight-bold">Discover Your Next Favorite Book</h1>
+                    <p class="lead text-white-50">Explore our vast collection of books across all genres.</p>
+                    <a href="#featured" class="btn btn-primary btn-lg">Browse Collection</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Featured Books -->
+    <section id="featured" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Featured Books</h2>
+            <div class="owl-carousel">
+                <!-- Books will be dynamically added here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-4">Popular Categories</h2>
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-magic"></i>
+                        <h4>Fantasy</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-heart"></i>
+                        <h4>Romance</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-microscope"></i>
+                        <h4>Science</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-book"></i>
+                        <h4>Literature</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>About Kitabi</h5>
+                    <p>Your premier destination for books of all genres. Discover, read, and shop the best books online.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white-50">About Us</a></li>
+                        <li><a href="#" class="text-white-50">Contact</a></li>
+                        <li><a href="#" class="text-white-50">FAQ</a></li>
+                        <li><a href="#" class="text-white-50">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Newsletter</h5>
+                    <form>
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="Enter your email">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">Subscribe</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
