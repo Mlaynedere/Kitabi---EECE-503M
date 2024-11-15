@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %} Profile {% endblock %}
+
+{% block body %}
+    <!-- Profile Section -->
+    <section id="profile" class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h4 class="card-title">{{ current_user.username }}</h4>
+                            <p class="card-text">{{ current_user.email }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Account Information</h5>
+                            <ul class="list-group">
+                                <li class="list-group-item">
+                                    <strong>Full Name:</strong> {{ current_user.full_name }}
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>Email:</strong> {{ current_user.email }}
+                                </li>
+
+                            </ul>
+                            <hr>
+                            <a href="/change-password/{{current_user.id}}" class="btn btn-warning btn-block">Change Password</a>
+                            <a href="{{ url_for('auth.log_out') }}" class="btn btn-danger btn-block">Log Out</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

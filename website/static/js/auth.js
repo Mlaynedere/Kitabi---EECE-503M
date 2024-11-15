@@ -4,43 +4,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('input');
 
     // Form submission
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Password validation for signup form
-        if (form.querySelector('[name="confirm_password"]')) {
-            const password = form.querySelector('[name="password"]').value;
-            const confirmPassword = form.querySelector('[name="confirm_password"]').value;
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Check if this is the signup form by looking for password1 field
+            const password1Field = form.querySelector('[name="password1"]');
+            const password2Field = form.querySelector('[name="password2"]');
             
-            if (password !== confirmPassword) {
-                showError('Passwords do not match');
-                return;
+            if (password1Field && password2Field) {
+                const password1 = password1Field.value;
+                const password2 = password2Field.value;
+                
+                if (password1 !== password2) {
+                    e.preventDefault(); // Prevent form submission
+                    showError('Passwords do not match');
+                    return;
+                }
+                
+                if (password1.length < 8) {
+                    e.preventDefault(); // Prevent form submission
+                    showError('Password must be at least 8 characters long');
+                    return;
+                }
             }
             
-            if (password.length < 8) {
-                showError('Password must be at least 8 characters long');
-                return;
+            // Add loading state to submit button
+            const submitBtn = form.querySelector('.submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing...';
             }
-        }
-        
-        // Simulate form submission
-        const submitBtn = form.querySelector('.submit-btn');
-        const originalText = submitBtn.textContent;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing...';
-        
-        // Simulate API call
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
-            showSuccess('Success! Redirecting...');
-            
-            // Redirect after success message
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-        }, 1500);
-    });
+        });
+    }
 
     // Input validation and animation
     inputs.forEach(input => {
@@ -105,11 +99,13 @@ function validateInput(input) {
     
     if (input.required && value === '') {
         input.classList.add('error');
+        showError(`${input.placeholder} is required`);
         return false;
     }
     
     if (input.type === 'email' && !validateEmail(value)) {
         input.classList.add('error');
+        showError('Please enter a valid email address');
         return false;
     }
     

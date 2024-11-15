@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %} Home {% endblock %}
+
+{% block body %}
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="container h-100">
+            <div class="row h-100 align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 text-white font-weight-bold">Discover Your Next Favorite Book</h1>
+                    <p class="lead text-white-50">Explore our vast collection of books across all genres.</p>
+                    <a href="#featured" class="btn btn-primary btn-lg">Browse Collection</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Books -->
+    <section id="featured" class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Featured Books</h2>
+            <div class="owl-carousel">
+                <!-- Books will be dynamically added here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-4">Popular Categories</h2>
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-magic"></i>
+                        <h4>Fantasy</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-heart"></i>
+                        <h4>Romance</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-microscope"></i>
+                        <h4>Science</h4>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="category-card">
+                        <i class="fas fa-book"></i>
+                        <h4>Literature</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% endblock %}

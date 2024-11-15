@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Shop Item{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-edit text-primary"></i>
+                    <span class="ms-2">Update Shop Item</span>
+                </h2>
+
+                <form action="" method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.product_name.label }}</label>
+                        {{ form.product_name(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.previous_price.label }}</label>
+                        {{ form.previous_price(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.current_price.label }}</label>
+                        {{ form.current_price(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.in_stock.label }}</label>
+                        {{ form.in_stock(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.product_picture.label }}</label>
+                        {% if form.product_picture.data %}
+                            <img src="{{ form.product_picture.data }}" alt="Product Image" style="height: 50px; width: 50px; border-radius: 2px;">
+                        {% endif %}
+                        {{ form.product_picture(class="form-control form-control-file") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.flash_sale(class="form-check-input") }}
+                            <label class="form-check-label">{{ form.flash_sale.label }}</label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        {{ form.update_product(class="btn btn-primary btn-block") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

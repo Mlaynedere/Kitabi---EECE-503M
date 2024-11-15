@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %} Shop Items {% endblock %}
+
+{% block body %}
+
+{% if items | length < 1 %}
+    <h3 style="color: white;">No Shop Items Available</h3>
+{% else %}
+
+    <div style="overflow-x: auto;">
+        <table class="table table table-hover">
+            <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Date Added</th>
+                    <th scope="col">Product Name</th>
+                    <th scope="col">Previous Price</th>
+                    <th scope="col">Current Price</th>
+                    <th scope="col">In Stock</th>
+                    <th scope="col">Product Picture</th>
+                    <th scope="col">Flash Sale</th>
+                    <th scope="col">Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <th scope="row">{{ item.id }}</th>
+                        <td>{{ item.date_added }}</td>
+                        <td>{{ item.product_name }}</td>
+                        <td>{{ item.previous_price }}</td>
+                        <td>{{ item.current_price }}</td>
+                        <td>{{ item.in_stock }}</td>
+                        <td><img src="{{ item.product_picture }}" alt="" style="height: 50px; width: 50px; border-radius: 2px;"></td>
+                        <td>{{ item.flash_sale }}</td>
+
+                        <td>
+                            <a href="/update-item/{{item.id}}" class="btn btn-primary">Update</a>
+                            <a href="/delete-item/{{item.id}}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% endif %}
+
+{% endblock %}
