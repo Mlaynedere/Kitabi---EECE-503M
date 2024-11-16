@@ -34,8 +34,8 @@ def create_app():
     from .admin import admin
     from .models import Customer, Cart, Product, Order
     
-    app.register_blueprint(views, url_prefix='/') #localhost:4000/about-us
-    app.register_blueprint(auth, url_prefix='/') #localhost:4000/auth/change-password
+    app.register_blueprint(views, url_prefix='/')
+    app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(admin, url_prefix='/')
 
     with app.app_context():

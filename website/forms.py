@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, FloatField, PasswordField, EmailField, BooleanField, SubmitField, FileField, DecimalField
+from wtforms import StringField, IntegerField, FloatField, PasswordField, EmailField, BooleanField, SubmitField, FileField, SelectField
 from wtforms.validators import DataRequired, length, NumberRange
 
 class SignUpForm(FlaskForm):
@@ -35,3 +35,10 @@ class ShopItemsForm(FlaskForm):
 
     add_product = SubmitField('Add Product')
     update_product = SubmitField('Update')
+
+class OrderForm(FlaskForm):
+    order_status = SelectField('Order Status', choices=[('Pending', 'Pending'), ('Accepted', 'Accepted'),
+                                                        ('Out for delivery', 'Out for delivery'),
+                                                        ('Delivered', 'Delivered'), ('Canceled', 'Canceled')])
+
+    update = SubmitField('Update Status')

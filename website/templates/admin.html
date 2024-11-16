@@ -31,7 +31,12 @@
                 <p>Add, update, or remove products from the catalog, including bulk uploads and pricing management.</p>
                 <a href="{{ url_for('admin.shop_items') }}" class="btn btn-primary">Manage Products</a>
                 <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-primary">Add Product</a>
+            </section>
 
+            <section id="orders" class="py-5">
+                <h2>Order Management</h2>
+                <p>Manage customer orders, update status, and process refunds or replacements.</p>
+                <a href="{{ url_for('admin.order_view') }}" class="btn btn-primary">Manage Orders</a>
             </section>
 
 </div>

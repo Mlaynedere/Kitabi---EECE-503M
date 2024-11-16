@@ -6,10 +6,9 @@ from intasend import APIService
 
 views = Blueprint('views', __name__)
 
+API_PUBLISHABLE_KEY = 'ISPubKey_test_f89875d2-8db8-434b-864d-3ebc564d7afd'
 
-API_PUBLISHABLE_KEY = 'YOUR_PUBLISHABLE_KEY'
-
-API_TOKEN = 'YOUR_API_TOKEN'
+API_TOKEN = 'ISSecretKey_test_be2d57dd-b5f6-47de-9b8a-24120ff8965c'
 
 @views.route('/')
 def home():
@@ -133,7 +132,6 @@ def remove_cart():
 
         return jsonify(data)
 
-
 @views.route('/place-order')
 @login_required
 def place_order():
@@ -145,8 +143,8 @@ def place_order():
                 total += item.product.current_price * item.quantity
 
             service = APIService(token=API_TOKEN, publishable_key=API_PUBLISHABLE_KEY, test=True)
-            create_order_response = service.collect.mpesa_stk_push(phone_number='YOUR_NUMBER ', email=current_user.email,
-                                                                   amount=total + 200, narrative='Purchase of goods')
+            create_order_response = service.collect.mpesa_stk_push(phone_number='25470174294 ', email=current_user.email,
+                                                                   amount=total + 3, narrative='Purchase of goods')
 
             for item in customer_cart:
                 new_order = Order()
@@ -179,6 +177,11 @@ def place_order():
         flash('Your cart is Empty')
         return redirect('/')
 
+@views.route('/orders')
+@login_required
+def order():
+    orders = Order.query.filter_by(customer_link=current_user.id).all()
+    return render_template('orders.html', orders=orders)
 
 
 # def home():
