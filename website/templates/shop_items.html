@@ -5,7 +5,7 @@
 {% block body %}
 
 {% if items | length < 1 %}
-    <h3 style="color: white;">No Shop Items Available</h3>
+    <h3 >No Shop Items Available</h3>
 {% else %}
 
     <div style="overflow-x: auto;">
@@ -14,11 +14,13 @@
                 <tr>
                     <th scope="col">ID</th>
                     <th scope="col">Date Added</th>
-                    <th scope="col">Product Name</th>
-                    <th scope="col">Previous Price</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Author</th>
+                    <th scope="col">Rating</th>
                     <th scope="col">Current Price</th>
                     <th scope="col">In Stock</th>
                     <th scope="col">Product Picture</th>
+                    <th scope="col">Discounted Price</th>
                     <th scope="col">Flash Sale</th>
                     <th scope="col">Action</th>
                 </tr>
@@ -30,10 +32,12 @@
                         <th scope="row">{{ item.id }}</th>
                         <td>{{ item.date_added }}</td>
                         <td>{{ item.product_name }}</td>
-                        <td>{{ item.previous_price }}</td>
+                        <td>{{ item.author }}</td>
+                        <td>{{ item.rating }}</td>
                         <td>{{ item.current_price }}</td>
                         <td>{{ item.in_stock }}</td>
                         <td><img src="{{ item.product_picture }}" alt="" style="height: 50px; width: 50px; border-radius: 2px;"></td>
+                        <td>{{ item.discounted_price}}</td>
                         <td>{{ item.flash_sale }}</td>
 
                         <td>

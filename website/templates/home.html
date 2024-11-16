@@ -3,7 +3,6 @@
 {% block title %} Home {% endblock %}
 
 {% block body %}
-
     <!-- Hero Section -->
     <div class="hero">
         <div class="container h-100">
@@ -17,18 +16,43 @@
         </div>
     </div>
 
-    <!-- Featured Books -->
-    <section id="featured" class="py-5">
-        <div class="container">
-            <h2 class="text-center mb-4">Featured Books</h2>
-            <div class="owl-carousel">
-                <!-- Books will be dynamically added here -->
-            </div>
+    <section class="shop-items py-5 bg-light">
+        <h2 class="text-center mb-4">Our Collection</h2>
+        <div class="owl-carousel owl-theme">
+            {% for item in items %}
+                <div class="book-card d-flex flex-column">
+                    <img src="{{ item.product_picture }}" alt="Cover of {{ item.product_name }}" class="product-image">
+                    <div class="content mt-3">
+                        <h4>{{ item.product_name }}</h4>
+                        <p class="text-muted">{{ item.author }}</p>
+                        <div class="rating">
+                            {% for i in range(item.rating|int) %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                            {% for i in range(5 - item.rating|int) %}
+                                <i class="far fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price">${{ "%.2f"|format(item.current_price) }}</span>
+                        </div>
+                    </div>
+                    <a href="/add-to-cart/{{ item.id }}" 
+                       class="btn btn-primary w-100 mt-3 {% if not item.in_stock %}disabled{% endif %}" 
+                       {% if not item.in_stock %}aria-disabled="true" tabindex="-1"{% endif %}>
+                        <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                    </a>
+                </div>
+            {% endfor %}
         </div>
     </section>
+    
+    
+    
+    
 
     <!-- Categories -->
-    <section class="categories py-5 bg-light">
+    <section class="categories py-5">
         <div class="container">
             <h2 class="text-center mb-4">Popular Categories</h2>
             <div class="row">
@@ -59,5 +83,4 @@
             </div>
         </div>
     </section>
-
-    {% endblock %}
+{% endblock %}

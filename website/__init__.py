@@ -38,7 +38,7 @@ def create_app():
     app.register_blueprint(auth, url_prefix='/') #localhost:4000/auth/change-password
     app.register_blueprint(admin, url_prefix='/')
 
-    # with app.app_context():
-    #     create_database()
+    with app.app_context():
+        create_database()
 
     return app

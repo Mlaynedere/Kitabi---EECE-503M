@@ -39,7 +39,7 @@ def sign_up():
             try:
                 db.session.add(new_customer)
                 db.session.commit()
-                flash('Account Created Successfully' + '\n' + 'You can now login!')
+                flash('Account Created Successfully')
                 return redirect(url_for('auth.login'))
             except Exception as e:
                 flash('There was an error creating your account. Please try again later.', 'error')

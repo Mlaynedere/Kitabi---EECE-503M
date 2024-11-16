@@ -35,11 +35,18 @@
                 </form>
                 <ul class="navbar-nav ml-auto">
                     {% if current_user.is_authenticated %}
+                    {% if current_user.id == 1 %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin-page">
+                            <i class="fas fa-cogs" style="color: #ff6347;"></i> Admin Panel
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="/account/{{current_user.id}}"><i class="fas fa-user"></i> Account</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="/cart">
                             <i class="fas fa-shopping-cart"></i> Cart
                             <span class="badge badge-primary">3</span>
                         </a>

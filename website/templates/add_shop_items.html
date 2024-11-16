@@ -21,8 +21,13 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">{{ form.previous_price.label }}</label>
-                        {{ form.previous_price(class="form-control") }}
+                        <label class="form-label">{{ form.author.label }}</label>
+                        {{ form.author(class="form-control") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.rating.label }}</label>
+                        {{ form.rating(class="form-control") }}
                     </div>
 
                     <div class="mb-3">
@@ -38,6 +43,10 @@
                     <div class="mb-3">
                         <label class="form-label">{{ form.product_picture.label }}</label>
                         {{ form.product_picture(class="form-control form-control-file") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.promotion_percentage.label }}</label>
+                        {{ form.promotion_percentage(class="form-control") }}
                     </div>
 
                     <div class="mb-3">
