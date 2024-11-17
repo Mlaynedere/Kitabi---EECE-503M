@@ -1,16 +1,33 @@
 {% extends 'base.html' %}
 
-{% block title %} Shop Items {% endblock %}
+{% block title %}Shop Items{% endblock %}
 
 {% block body %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-store"></i> Shop Items</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Shop Items</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
 
-{% if items | length < 1 %}
-    <h3 >No Shop Items Available</h3>
-{% else %}
-
-    <div style="overflow-x: auto;">
-        <table class="table table table-hover">
-            <thead>
+    {% if items | length < 1 %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Shop Items Available</h4>
+        <p>Please add items to the shop to view them here.</p>
+        <a href="{{ url_for('admin.add_item') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> Add Item
+        </a>
+    </div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="thead-light">
                 <tr>
                     <th scope="col">ID</th>
                     <th scope="col">Date Added</th>
@@ -22,34 +39,73 @@
                     <th scope="col">Product Picture</th>
                     <th scope="col">Discounted Price</th>
                     <th scope="col">Flash Sale</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Subcategory</th>
                     <th scope="col">Action</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for item in items %}
-                    <tr>
-                        <th scope="row">{{ item.id }}</th>
-                        <td>{{ item.date_added }}</td>
-                        <td>{{ item.product_name }}</td>
-                        <td>{{ item.author }}</td>
-                        <td>{{ item.rating }}</td>
-                        <td>{{ item.current_price }}</td>
-                        <td>{{ item.in_stock }}</td>
-                        <td><img src="{{ item.product_picture }}" alt="" style="height: 50px; width: 50px; border-radius: 2px;"></td>
-                        <td>{{ item.discounted_price}}</td>
-                        <td>{{ item.flash_sale }}</td>
-
-                        <td>
-                            <a href="/update-item/{{item.id}}" class="btn btn-primary">Update</a>
-                            <a href="/delete-item/{{item.id}}" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this item?')">Delete</a>
-                        </td>
-                    </tr>
+                <tr>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.date_added }}</td>
+                    <td>{{ item.product_name }}</td>
+                    <td>{{ item.author }}</td>
+                    <td>
+                        <div class="text-warning">
+                            {% for i in range(item.rating|int) %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                            {% if item.rating % 1 >= 0.5 %}
+                            <i class="fas fa-star-half-alt"></i>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>${{ "{:,.2f}".format(item.current_price) }}</td>
+                    <td>
+                        {% if item.in_stock > 0 %}
+                        <span class="badge bg-success">{{ item.in_stock }}</span>
+                        {% else %}
+                        <span class="badge bg-danger">Out of Stock</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <img src="{{ item.product_picture }}" alt="{{ item.product_name }}" style="height: 50px; width: 50px; border-radius: 4px;">
+                    </td>
+                    <td>${{ "{:,.2f}".format(item.discounted_price) }}</td>
+                    <td>
+                        {% if item.flash_sale %}
+                        <span class="badge bg-warning">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.category.name }}</td>
+                    <td>{{ item.subcategory.name }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.update_item', item_id=item.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> Update
+                        </a>
+                        <a href="{{ url_for('admin.delete_item', item_id=item.id) }}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </a>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% endif %}
 
-{% endif %}
-
+    <div class="row mt-4">
+        <div class="col">
+            <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> Add New Item
+            </a>
+            <a href="{{ url_for('admin.admin_page') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}

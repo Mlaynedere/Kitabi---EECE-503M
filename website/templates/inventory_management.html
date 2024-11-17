@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Management{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h2 class="mb-4">Inventory Management</h2>
+    
+    <!-- Alert for low stock items -->
+    {% if low_stock_products %}
+    <div class="alert alert-warning">
+        <h4 class="alert-heading">Low Stock Alert!</h4>
+        <p>The following items are running low:</p>
+        <ul>
+            {% for product in low_stock_products %}
+            <li>
+                {{ product.product_name }} - {{ product.in_stock }} remaining
+                (Threshold: {{ product.low_stock_threshold }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Warehouse Inventory Tabs -->
+    <ul class="nav nav-tabs" id="warehouseTabs" role="tablist">
+        {% for warehouse in warehouse_inventory.keys() %}
+        <li class="nav-item">
+            <a class="nav-link {% if loop.first %}active{% endif %}" 
+               id="{{ warehouse|replace(' ', '') }}-tab"
+               data-toggle="tab"
+               href="#{{ warehouse|replace(' ', '') }}"
+               role="tab">
+                {{ warehouse }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Warehouse Content -->
+    <div class="tab-content mt-3" id="warehouseContent">
+        {% for warehouse, products in warehouse_inventory.items() %}
+        <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+             id="{{ warehouse|replace(' ', '') }}"
+             role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Low Stock Threshold</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr {% if product.in_stock <= product.low_stock_threshold %}class="table-warning"{% endif %}>
+                            <td>{{ product.product_name }}</td>
+                            <td>{{ product.category.name }}</td>
+                            <td>{{ product.in_stock }}</td>
+                            <td>{{ product.low_stock_threshold }}</td>
+                            <td>{{ product.last_stock_update.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.update_inventory', product_id=product.id) }}"
+                                   class="btn btn-sm btn-primary">
+                                    Update Stock
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

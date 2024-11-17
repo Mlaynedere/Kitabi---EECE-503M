@@ -4,14 +4,23 @@
 
 {% block body %}
 <div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="bg-white p-4 rounded-lg shadow-sm">
-                <h2 class="text-center mb-4">
-                    <i class="fas fa-plus-circle text-primary"></i>
-                    <span class="ms-2">Add Shop Items</span>
-                </h2>
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-plus-circle text-primary"></i> Add Shop Items</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.shop_items') }}">Shop Items</a></li>
+                    <li class="breadcrumb-item active">Add Shop Items</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
 
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-center mb-4">Add a New Item</h3>
                 <form action="" method="POST" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
 
@@ -44,6 +53,7 @@
                         <label class="form-label">{{ form.product_picture.label }}</label>
                         {{ form.product_picture(class="form-control form-control-file") }}
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">{{ form.promotion_percentage.label }}</label>
                         {{ form.promotion_percentage(class="form-control") }}
@@ -56,12 +66,58 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.category.label }}</label>
+                        {{ form.category(class="form-control", id="category-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.subcategory.label }}</label>
+                        {{ form.subcategory(class="form-control", id="subcategory-select") }}
+                    </div>
+
                     <div class="d-grid gap-2">
-                        {{ form.add_product(class="btn btn-primary btn-block") }}
+                        {{ form.add_product(class="btn btn-primary") }}
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <div class="row mt-4">
+        <div class="col">
+            <a href="{{ url_for('admin.shop_items') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Shop Items
+            </a>
+        </div>
+    </div>
 </div>
+
+<!-- JavaScript to dynamically update subcategory based on category selection -->
+<script>
+    document.getElementById('category-select').addEventListener('change', function() {
+        const categoryId = this.value;
+        const subcategorySelect = document.getElementById('subcategory-select');
+        
+        // Clear existing subcategory options
+        subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+        
+        if (categoryId) {
+            fetch(`/get-subcategories/${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate subcategory options
+                    data.subcategories.forEach(subcategory => {
+                        const option = document.createElement('option');
+                        option.value = subcategory.id;
+                        option.textContent = subcategory.name;
+                        subcategorySelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching subcategories:', error);
+                });
+        }
+    });
+</script>
 {% endblock %}

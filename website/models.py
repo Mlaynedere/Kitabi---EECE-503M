@@ -38,12 +38,17 @@ class Product(db.Model):
     rating = db.Column(db.Float, nullable = False)
     current_price = db.Column(db.Float, nullable = False)
     in_stock = db.Column(db.Integer, nullable = False)
+    low_stock_threshold = db.Column(db.Integer, default=10)  # New field
+    warehouse_location = db.Column(db.String(100), nullable=False, default='Main Warehouse')  # New field
     promotion_percentage = db.Column(db.Integer, default=0)  # New field for promotion
     discounted_price = db.Column(db.Float, nullable=True) 
     product_picture = db.Column(db.String(1000), nullable=False)
     flash_sale = db.Column(db.Boolean, default = False)
     date_added = db.Column(db.DateTime, default = datetime.utcnow)
-    
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    subcategory_id = db.Column(db.Integer, db.ForeignKey('sub_category.id'), nullable=False)
+    last_stock_update = db.Column(db.DateTime, default=datetime.utcnow)  # New field
+
     carts = db.relationship('Cart', backref=db.backref('product', lazy=True))
     orders = db.relationship('Order', backref=db.backref('product'), lazy=True)
     
@@ -73,4 +78,38 @@ class Order(db.Model):
     
     def __str__(self):
         return '<Order %r>' % self.id
-        
+
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    products = db.relationship('Product', backref='category', lazy=True)
+
+    subcategories = db.relationship('SubCategory', backref='category', lazy=True)
+
+    def __str__(self):
+        return f'<Category {self.name}>'
+
+
+class SubCategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    products = db.relationship('Product', backref='subcategory', lazy=True)
+
+    def __str__(self):
+        return f'<SubCategory {self.name}>'
+    
+
+class StockHistory(db.Model):
+    __tablename__ = 'stock_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    previous_stock = db.Column(db.Integer, nullable=False)
+    new_stock = db.Column(db.Integer, nullable=False)
+    change = db.Column(db.Integer, nullable=False)
+    date_updated = db.Column(db.DateTime, default=datetime.utcnow)
+    warehouse_location = db.Column(db.String(100), nullable=False)
+    updated_by = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+
+    product = db.relationship('Product', backref='stock_history', lazy=True)

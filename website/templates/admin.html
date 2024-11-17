@@ -10,7 +10,7 @@
             <h3 class="text-center mt-4">Admin Dashboard</h3>
             <ul class="list-group mt-4">
                 <li class="list-group-item">
-                    <a href="#" class="text-decoration-none text-dark">Inventory Management</a>
+                    <a href="#inventory" class="text-decoration-none text-dark">Inventory Management</a>
                 </li>
                 <li class="list-group-item">
                     <a href="#orders" class="text-decoration-none text-dark">Order Management</a>
@@ -26,6 +26,13 @@
 
         <!-- Main Content -->
         <div class="col-md-5">
+            <section id="inventory" class="py-5">
+                <h2>Inventory Management</h2>
+                <p>Track stock levels, manage warehouse inventory, and view detailed inventory reports.</p>
+                <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-primary">Manage Inventory</a>
+                <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-primary">View Reports</a>
+            </section>
+
             <section id="products" class="py-5">
                 <h2>Product Management</h2>
                 <p>Add, update, or remove products from the catalog, including bulk uploads and pricing management.</p>
@@ -38,6 +45,7 @@
                 <p>Manage customer orders, update status, and process refunds or replacements.</p>
                 <a href="{{ url_for('admin.order_view') }}" class="btn btn-primary">Manage Orders</a>
             </section>
-
+        </div>
+    </div>
 </div>
 {% endblock %}

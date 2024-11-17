@@ -47,10 +47,24 @@
 
                     <div class="mb-3">
                         <label class="form-label">{{ form.product_picture.label }}</label>
-                        {% if form.product_picture.data %}
-                            <img src="{{ form.product_picture.data }}" alt="Product Image" style="height: 50px; width: 50px; border-radius: 2px;">
+                        {% if current_image %}
+                            <img src="{{ url_for('admin.get_image', filename=current_image.split('/')[-1]) }}" 
+                                 alt="Current Product Image" 
+                                 style="height: 100px; width: 100px; border-radius: 5px;">
+                            <p>Current Image: {{ current_image.split('/')[-1] }}</p>
+                            <p>You can upload a new image to replace the current one, or leave this field empty to keep the existing image.</p>
                         {% endif %}
                         {{ form.product_picture(class="form-control form-control-file") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.category.label }}</label>
+                        {{ form.category(class="form-control", id="category-select") }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">{{ form.subcategory.label }}</label>
+                        {{ form.subcategory(class="form-control", id="subcategory-select") }}
                     </div>
 
                     <div class="mb-3">
@@ -68,4 +82,36 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript to dynamically update subcategory based on category selection -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category-select');
+    const subcategorySelect = document.getElementById('subcategory-select');
+    
+    if (categorySelect && subcategorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            
+            // Clear existing options
+            subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+            
+            if (categoryId) {
+                fetch(`/get-subcategories/${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.subcategories.forEach(subcategory => {
+                            const option = document.createElement('option');
+                            option.value = subcategory.id;
+                            option.textContent = subcategory.name;
+                            subcategorySelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        });
+    }
+});
+</script>
+
 {% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory History{% endblock %}
+
+{% block body %}
+<div class="container">
+    <h2>Inventory Transaction History</h2>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th>Previous Stock</th>
+                    <th>New Stock</th>
+                    <th>Quantity Changed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.transaction_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ transaction.product.product_name }}</td>
+                    <td>{{ transaction.transaction_type }}</td>
+                    <td>{{ transaction.previous_stock }}</td>
+                    <td>{{ transaction.new_stock }}</td>
+                    <td>
+                        {% if transaction.transaction_type == 'restock' %}
+                            +{{ transaction.quantity }}
+                        {% else %}
+                            {{ transaction.quantity }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

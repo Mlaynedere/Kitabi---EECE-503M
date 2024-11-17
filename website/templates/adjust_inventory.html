@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Adjust Inventory{% endblock %}
+
+{% block body %}
+<div class="container">
+    <h2>Adjust Inventory - {{ product.product_name }}</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="transaction_type" class="form-label">Transaction Type</label>
+            <select class="form-select" id="transaction_type" name="transaction_type" required>
+                <option value="restock">Restock</option>
+                <option value="adjustment">Adjustment</option>
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="quantity" class="form-label">Quantity</label>
+            <input type="number" class="form-control" id="quantity" name="quantity" 
+                   required min="0" value="{{ product.in_stock }}">
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Update Inventory</button>
+        <a href="{{ url_for('admin.inventory_dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

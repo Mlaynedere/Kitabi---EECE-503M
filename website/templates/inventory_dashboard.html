@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Inventory Dashboard{% endblock %}
+
+{% block body %}
+<div class="container mt-5 pt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-warehouse text-primary"></i> Inventory Dashboard
+            </h2>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-books"></i> Total Products
+                    </h5>
+                    <h2 class="card-text">{{ total_products }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i> Low Stock
+                    </h5>
+                    <h2 class="card-text">{{ low_stock_products|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-times-circle"></i> Out of Stock
+                    </h5>
+                    <h2 class="card-text">{{ out_of_stock }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-check-circle"></i> Categories
+                    </h5>
+                    <h2 class="card-text">10</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alerts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Low Stock Alerts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Current Stock</th>
+                                    <th>Threshold</th>
+                                    <th>Category</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in low_stock_products %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.in_stock }}</td>
+                                    <td>{{ product.min_stock_threshold }}</td>
+                                    <td>{{ product.category.name }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary">Restock</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Warehouse</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.transaction_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ transaction.product.product_name }}</td>
+                                    <td>
+                                        {% if transaction.transaction_type == 'restock' %}
+                                            <span class="badge badge-success">Restock</span>
+                                        {% elif transaction.transaction_type == 'sale' %}
+                                            <span class="badge badge-primary">Sale</span>
+                                        {% else %}
+                                            <span class="badge badge-warning">Adjustment</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ transaction.quantity }}</td>
+                                    <td>{{ transaction.warehouse.name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

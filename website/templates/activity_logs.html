@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Activity Logs{% endblock %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h2 class="text-center mb-4">Admin Activity Logs</h2>
+
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-bordered">
+        <thead class="thead">
+          <tr>
+            <th>ID</th>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if activities %}
+            {% for activity in activities %}
+              <tr>
+                <td>{{ activity.id }}</td>
+                <td>{{ activity.admin_id }}</td>
+                <td>{{ activity.action }}</td>
+                <td>{{ activity.timestamp }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-center">No activity logs available.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Report{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-line"></i> Inventory Report</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Inventory Report</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <h2>{{ total_products }}</h2>
+                    <p class="mb-0">Active products</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock Items</h5>
+                    <h2>{{ low_stock_products }}</h2>
+                    <p class="mb-0">Need attention</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Categories</h5>
+                    <h2>{{ category_stock|length }}</h2>
+                    <p class="mb-0">Active categories</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Value</h5>
+                    <h2>${{ "{:,.2f}".format(total_stock_value) }}</h2>
+                    <p class="mb-0">Inventory worth</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Stock by Category -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Stock by Category</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Total Items</th>
+                                    <th>Stock Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category, stats in category_stock.items() %}
+                                <tr>
+                                    <td>{{ category }}</td>
+                                    <td>{{ stats.total_items }}</td>
+                                    <td>${{ "{:,.2f}".format(stats.value) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Most Popular Products -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Most Popular Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Rating</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in most_popular_products %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>
+                                        <div class="text-warning">
+                                            {% for i in range(product.rating|int) %}
+                                            <i class="fas fa-star"></i>
+                                            {% endfor %}
+                                            {% if product.rating % 1 >= 0.5 %}
+                                            <i class="fas fa-star-half-alt"></i>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>{{ product.in_stock }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock Alerts -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">Low Stock Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Current Stock</th>
+                                    <th>Threshold</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in low_stock_items %}
+                                <tr>
+                                    <td>{{ product.product_name }}</td>
+                                    <td>{{ product.category.name }}</td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ product.in_stock }}</span>
+                                    </td>
+                                    <td>{{ product.low_stock_threshold }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.update_inventory', product_id=product.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            Update Stock
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warehouse Statistics -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Warehouse Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Warehouse</th>
+                                    <th>Total Products</th>
+                                    <th>Low Stock Items</th>
+                                    <th>Total Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for warehouse, stats in warehouse_stats.items() %}
+                                <tr>
+                                    <td>{{ warehouse }}</td>
+                                    <td>{{ stats.total_products }}</td>
+                                    <td>
+                                        {% if stats.low_stock_items > 0 %}
+                                        <span class="badge bg-warning">{{ stats.low_stock_items }}</span>
+                                        {% else %}
+                                        <span class="badge bg-success">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ "{:,.2f}".format(stats.total_value) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col">
+            <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-primary">
+                <i class="fas fa-boxes"></i> Manage Inventory
+            </a>
+            <a href="{{ url_for('admin.admin_page') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

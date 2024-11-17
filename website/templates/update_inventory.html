@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Inventory{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0">
+                        <i class="fas fa-boxes"></i> Update Inventory
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <!-- Product Info Summary -->
+                    <div class="mb-4">
+                        <h3 class="h5">Product Details</h3>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <img src="{{ url_for('admin.get_image', filename=product.product_picture.split('/')[-1]) }}" 
+                                     alt="{{ product.product_name }}" 
+                                     class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-9">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-3">Title:</dt>
+                                    <dd class="col-sm-9">{{ product.product_name }}</dd>
+                                    
+                                    <dt class="col-sm-3">Author:</dt>
+                                    <dd class="col-sm-9">{{ product.author }}</dd>
+                                    
+                                    <dt class="col-sm-3">Category:</dt>
+                                    <dd class="col-sm-9">{{ product.category.name }}</dd>
+                                    
+                                    <dt class="col-sm-3">Subcategory:</dt>
+                                    <dd class="col-sm-9">{{ product.subcategory.name }}</dd>
+                                    
+                                    <dt class="col-sm-3">Current Price:</dt>
+                                    <dd class="col-sm-9">${{ "%.2f"|format(product.current_price) }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Update Form -->
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <div class="row">
+                            <!-- Warehouse Location -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.warehouse_location.label }}</label>
+                                {{ form.warehouse_location(class="form-select") }}
+                                {% if form.warehouse_location.errors %}
+                                    {% for error in form.warehouse_location.errors %}
+                                        <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+
+                            <!-- Low Stock Threshold -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">{{ form.low_stock_threshold.label }}</label>
+                                {{ form.low_stock_threshold(class="form-control") }}
+                                {% if form.low_stock_threshold.errors %}
+                                    {% for error in form.low_stock_threshold.errors %}
+                                        <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Current Stock -->
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.in_stock.label }}</label>
+                            {{ form.in_stock(class="form-control") }}
+                            {% if form.in_stock.errors %}
+                                {% for error in form.in_stock.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- Stock Level Indicator -->
+                        <div class="mb-4">
+                            <div class="progress">
+                                <div class="progress-bar {% if product.in_stock <= product.low_stock_threshold %}bg-danger{% elif product.in_stock <= product.low_stock_threshold * 2 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: 100%">
+                                    {{ product.in_stock }} units in stock
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2">
+                            {{ form.update_stock(class="btn btn-primary btn-lg") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stock History -->
+<div class="card mt-4 shadow-sm">
+    <div class="card-header">
+        <h3 class="h5 mb-0">Stock History</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Previous Stock</th>
+                        <th>New Stock</th>
+                        <th>Change</th>
+                        <th>Warehouse</th>
+                        <th>Updated By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in history %}
+                    <tr>
+                        <td>{{ record.date_updated.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ record.previous_stock }}</td>
+                        <td>{{ record.new_stock }}</td>
+                        <td>
+                            {% if record.change > 0 %}
+                                <span class="text-success">+{{ record.change }}</span>
+                            {% elif record.change < 0 %}
+                                <span class="text-danger">{{ record.change }}</span>
+                            {% else %}
+                                <span class="text-secondary">0</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ record.warehouse_location }}</td>
+                        <td>Admin</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No history available</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+            <!-- Action Buttons -->
+            <div class="mt-4">
+                <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Inventory
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
