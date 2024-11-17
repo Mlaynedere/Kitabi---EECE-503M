@@ -1,51 +1,292 @@
 {% extends 'base.html' %}
 
-{% block title %} Admin Dashboard {% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
 
 {% block body %}
 <div class="container-fluid">
-    <!-- Sidebar -->
     <div class="row">
-        <div class="col-md-3 bg-light">
-            <h3 class="text-center mt-4">Admin Dashboard</h3>
-            <ul class="list-group mt-4">
-                <li class="list-group-item">
-                    <a href="#inventory" class="text-decoration-none text-dark">Inventory Management</a>
-                </li>
-                <li class="list-group-item">
-                    <a href="#orders" class="text-decoration-none text-dark">Order Management</a>
-                </li>
-                <li class="list-group-item">
-                    <a href="#products" class="text-decoration-none text-dark">Product Management</a>
-                </li>
-                <li class="list-group-item">
-                    <a href="#" class="text-decoration-none text-dark">User & Role Management</a>
-                </li>
-            </ul>
+<!-- Sidebar -->
+<nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+    <div class="position-sticky pt-3">
+        <div class="text-center mb-4">
+            <i class="fas fa-user-shield fa-3x text-primary"></i>
+            <h5 class="mt-2">Admin Panel</h5>
         </div>
 
-        <!-- Main Content -->
-        <div class="col-md-5">
-            <section id="inventory" class="py-5">
-                <h2>Inventory Management</h2>
-                <p>Track stock levels, manage warehouse inventory, and view detailed inventory reports.</p>
-                <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-primary">Manage Inventory</a>
-                <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-primary">View Reports</a>
-            </section>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('admin.admin_page') }}">
+                    <i class="fas fa-tachometer-alt me-2"></i>
+                    Dashboard
+                </a>
+            </li>
 
-            <section id="products" class="py-5">
-                <h2>Product Management</h2>
-                <p>Add, update, or remove products from the catalog, including bulk uploads and pricing management.</p>
-                <a href="{{ url_for('admin.shop_items') }}" class="btn btn-primary">Manage Products</a>
-                <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-primary">Add Product</a>
-            </section>
+            <!-- Inventory Section -->
+            <li class="nav-item mb-1">
+                <a class="nav-link" href="{{ url_for('admin.inventory_management') }}">
+                    <i class="fas fa-boxes me-2"></i>
+                    Manage Inventory
+                </a>
 
-            <section id="orders" class="py-5">
-                <h2>Order Management</h2>
-                <p>Manage customer orders, update status, and process refunds or replacements.</p>
-                <a href="{{ url_for('admin.order_view') }}" class="btn btn-primary">Manage Orders</a>
-            </section>
-        </div>
+            </li>
+
+            <!-- Products Section -->
+            <li class="nav-item mb-1">
+                <a class="nav-link" href="{{ url_for('admin.shop_items') }}">
+                    <i class="fas fa-tags me-2"></i>
+                    Manage Products
+                </a>
+
+            </li>
+
+            <!-- Orders Section -->
+            <li class="nav-item mb-1">
+                <a class="nav-link" href="{{ url_for('admin.order_view') }}">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Manage Orders
+                </a>
+            </li>
+
+            <!-- Users Section -->
+            <li class="nav-item mb-1">
+                <a class="nav-link" href="{{ url_for('admin.manage_roles') }}">
+                    <i class="fas fa-user-cog me-2"></i>
+                    Manage Roles
+                </a>
+
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin.view_activity_logs') }}">
+                    <i class="fas fa-history me-2"></i>
+                    Activity Logs
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+        <!-- Main Content Area -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 mt-3">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                <h1 class="h2">Dashboard Overview</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                        <i class="fas fa-calendar"></i>
+                        This week
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0">Total Orders</h6>
+                                    <h2 class="mt-2 mb-0">{{ total_orders|default(0) }}</h2>
+                                </div>
+                                <i class="fas fa-shopping-cart fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0">Revenue</h6>
+                                    <h2 class="mt-2 mb-0">${{ total_revenue|default('0.00') }}</h2>
+                                </div>
+                                <i class="fas fa-dollar-sign fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-dark bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0">Low Stock</h6>
+                                    <h2 class="mt-2 mb-0">{{ low_stock_count|default(0) }}</h2>
+                                </div>
+                                <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title mb-0">Active Users</h6>
+                                    <h2 class="mt-2 mb-0">{{ active_users|default(0) }}</h2>
+                                </div>
+                                <i class="fas fa-users fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Activity -->
+            <div class="row g-4 mb-4">
+                <!-- Quick Actions -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-primary w-100">
+                                        <i class="fas fa-plus me-2"></i>Add Product
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-info w-100">
+                                        <i class="fas fa-boxes me-2"></i>Update Stock
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.order_view') }}" class="btn btn-success w-100">
+                                        <i class="fas fa-clipboard-list me-2"></i>View Orders
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-warning w-100">
+                                        <i class="fas fa-chart-bar me-2"></i>Reports
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Recent Activity</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush">
+                                {% if recent_activities %}
+                                    {% for log in recent_activities %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ log.action }}</h6>
+                                            <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <p class="mb-1">{{ log.details }}</p>
+                                        <small>by {{ log.user.username }}</small>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="list-group-item">
+                                        <p class="mb-0 text-muted">No recent activity</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 </div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Custom CSS for the admin dashboard */
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    height: 100vh;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+}
+
+.sidebar .nav-link.active {
+    color: #2470dc;
+}
+
+.sidebar .nav-link:hover {
+    color: #2470dc;
+}
+
+.btn-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .5rem;
+    color: rgba(0, 0, 0, .65);
+    background-color: transparent;
+    border: 0;
+}
+
+.btn-toggle:hover,
+.btn-toggle:focus {
+    color: rgba(0, 0, 0, .85);
+    background-color: #d2f4ea;
+}
+
+main {
+    padding-top: 48px;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: static;
+        height: auto;
+        padding-top: 0;
+    }
+    
+    main {
+        padding-top: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Activate current nav item based on URL
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+            // Expand parent collapse if exists
+            const parentCollapse = link.closest('.collapse');
+            if (parentCollapse) {
+                parentCollapse.classList.add('show');
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

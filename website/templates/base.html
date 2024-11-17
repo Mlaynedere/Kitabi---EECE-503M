@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <title>Kitabi | {% block title %} {% endblock %}</title>
-
 </head>
 <body>
     <!-- Navigation -->
@@ -22,6 +21,7 @@
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
                 <form class="form-inline mx-auto w-50">
                     <div class="input-group w-100">
@@ -35,51 +35,115 @@
                 </form>
                 <ul class="navbar-nav ml-auto">
                     {% if current_user.is_authenticated %}
-                    {% if current_user.id == 1 %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/admin-page">
-                            <i class="fas fa-cogs" style="color: #ff6347;"></i> Admin Panel
-                        </a>
-                    </li>
+                    {% if current_user.is_admin or current_user.is_superadmin %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
+                               data-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs" style="color: #ff6347;"></i> Admin Panel
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <a class="dropdown-item" href="{{ url_for('admin.admin_page') }}">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                                </a>
+                                
+                                {% if current_user.is_superadmin or current_user.has_permission('manage_products') %}
+                                <a class="dropdown-item" href="{{ url_for('admin.shop_items') }}">
+                                    <i class="fas fa-books"></i> Manage Products
+                                </a>
+                                {% endif %}
+                
+                                {% if current_user.is_superadmin or current_user.has_permission('manage_inventory') %}
+                                <a class="dropdown-item" href="{{ url_for('admin.inventory_management') }}">
+                                    <i class="fas fa-boxes"></i> Inventory
+                                </a>
+                                <a class="dropdown-item" href="{{ url_for('admin.inventory_report') }}">
+                                    <i class="fas fa-chart-bar"></i> Inventory Report
+                                </a>
+                                {% endif %}
+                
+                                {% if current_user.is_superadmin or current_user.has_permission('manage_orders') %}
+                                <a class="dropdown-item" href="{{ url_for('admin.order_view') }}">
+                                    <i class="fas fa-shopping-bag"></i> Orders
+                                </a>
+                                {% endif %}
+                
+                                {% if current_user.is_superadmin or current_user.has_permission('manage_users') %}
+                                <a class="dropdown-item" href="{{ url_for('admin.manage_roles') }}">
+                                    <i class="fas fa-user-tag"></i> Manage Roles
+                                </a>
+                                <a class="dropdown-item" href="{{ url_for('admin.display_customers') }}">
+                                    <i class="fas fa-users"></i> Customers
+                                </a>
+                                {% endif %}
+                
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ url_for('admin.view_activity_logs') }}">
+                                    <i class="fas fa-history"></i> Activity Logs
+                                </a>
+                            </div>
+                        </li>
                     {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/account/{{current_user.id}}"><i class="fas fa-user"></i> Account</a>
-                    </li>
+                    
+                    {% if not current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="/orders">
-                            <i class="fas fa-shopping-cart"></i> Orders
-                            <span class="badge badge-primary">3</span>
+                            <i class="fas fa-shopping-bag"></i> Orders
+                            {% if current_user.orders|length > 0 %}
+                            <span class="badge badge-primary">{{ current_user.orders|length }}</span>
+                            {% endif %}
                         </a>
                     </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="/cart">
                             <i class="fas fa-shopping-cart"></i> Cart
-                            <span class="badge badge-primary">3</span>
+                            {% if current_user.cart_items|length > 0 %}
+                            <span class="badge badge-primary">{{ current_user.cart_items|length }}</span>
+                            {% endif %}
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.log_out') }}"><i class="fas fa-sign-out-alt"></i> Log Out</a>
-                    </li>
-
+                    {% endif %}
+                
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+                               data-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle"></i> {{ current_user.username }}
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="/account/{{current_user.id}}">
+                                    <i class="fas fa-user-cog"></i> Profile Settings
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="{{ url_for('auth.log_out') }}">
+                                    <i class="fas fa-sign-out-alt"></i> Log Out
+                                </a>
+                            </div>
+                        </li>
                     {% else %}
-                    <li><a class="nav-link" href="{{ url_for('auth.login') }}"><i class="fas fa-user"></i> Log In </a></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                <i class="fas fa-sign-in-alt"></i> Log In
+                            </a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    {% for message in get_flashed_messages() %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-top: 5px;">
-        <strong>{{ message }}</strong>
-        <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close">        </button>
-    </div>
-    {% endfor %}
-    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" 
+                     role="alert" style="margin-top: 5rem;">
+                    <strong>{{ message }}</strong>
+                    <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     {% block body %}
-
-
     {% endblock %}
 
     <!-- Footer -->

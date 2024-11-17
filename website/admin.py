@@ -1,108 +1,174 @@
-from flask import Blueprint, jsonify, render_template, flash, send_from_directory, redirect, request
+from flask import Blueprint, jsonify, render_template, flash, send_from_directory, redirect, request, url_for
 from flask_login import login_required, current_user
-from .forms import ShopItemsForm, OrderForm, InventoryForm
+from .decorators import admin_required, check_permission
+from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm
 from werkzeug.utils import secure_filename
-from .models import Product, Order, Customer, Category, SubCategory, StockHistory
+from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role
 from . import db
 from sqlalchemy.orm import joinedload
 from datetime import datetime
+import os
+import json
 
 admin = Blueprint('admin', __name__)
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def log_activity(action, entity_type=None, entity_id=None, details=None):
+    try:
+        log = ActivityLog(
+            user_id=current_user.id,
+            action=action,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            details=details,
+            ip_address=request.remote_addr
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error logging activity: {e}")
+        db.session.rollback()
 
 @admin.route('/media/<path:filename>')
 def get_image(filename):
     return send_from_directory('../media', filename)
-from flask import render_template, flash, redirect, url_for
-from werkzeug.utils import secure_filename
-from . import db
-from .models import Product, Category, SubCategory
-from .forms import ShopItemsForm
 
 @admin.route('/add-shop-items', methods=['GET', 'POST'])
 @login_required
+@admin_required
+@check_permission('manage_products')
 def add_shop_items():
-    if current_user.id == 1:
-        form = ShopItemsForm()
-        categories = Category.query.all()  # Get all categories from DB
-        subcategories = SubCategory.query.all()  # Get all subcategories from DB
+    form = ShopItemsForm()
+    
+    try:
+        # Get all categories and subcategories
+        categories = Category.query.all()
+        subcategories = SubCategory.query.all()
 
-        # Populate the category and subcategory dropdowns
+        # Populate form choices
         form.category.choices = [(category.id, category.name) for category in categories]
         form.subcategory.choices = [(subcategory.id, subcategory.name) for subcategory in subcategories]
 
-        # If the form is submitted, process the data
         if form.validate_on_submit():
-            product_name = form.product_name.data
-            author = form.author.data
-            rating = form.rating.data
-            current_price = form.current_price.data
-            in_stock = form.in_stock.data
-            flash_sale = form.flash_sale.data
-            promotion_percentage = form.promotion_percentage.data
-            discounted_price = current_price - (current_price * promotion_percentage / 100)
-
-            file = form.product_picture.data
-
-            # Ensure safe file storage
-            file_name = secure_filename(file.filename)
-            file_path = f'./media/{file_name}'  # Save to the media folder
-            file.save(file_path)
-
-            # Get category and subcategory from the form
-            category_id = form.category.data
-            subcategory_id = form.subcategory.data
-
-            # Create a new product and assign category and subcategory
-            new_shop_item = Product(
-                product_name=product_name,
-                author=author,
-                rating=rating,
-                current_price=current_price,
-                in_stock=in_stock,
-                flash_sale=flash_sale,
-                promotion_percentage=promotion_percentage,
-                discounted_price=discounted_price,
-                product_picture=file_path,
-                category_id=category_id,  # Linking category to product
-                subcategory_id=subcategory_id  # Linking subcategory to product
-            )
-
             try:
-                # Add new product to the database
+                # Extract form data
+                product_name = form.product_name.data
+                author = form.author.data
+                rating = form.rating.data
+                current_price = form.current_price.data
+                in_stock = form.in_stock.data
+                flash_sale = form.flash_sale.data
+                promotion_percentage = form.promotion_percentage.data
+                category_id = form.category.data
+                subcategory_id = form.subcategory.data
+
+                # Calculate discounted price
+                discounted_price = current_price - (current_price * promotion_percentage / 100)
+
+                # Handle file upload
+                file = form.product_picture.data
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join('./media', filename)
+                    
+                    # Ensure media directory exists
+                    os.makedirs('./media', exist_ok=True)
+                    
+                    # Save the file
+                    file.save(file_path)
+                else:
+                    flash('Invalid file type or no file provided', 'error')
+                    return render_template('add_shop_items.html', form=form, 
+                                        categories=categories, 
+                                        subcategories=subcategories)
+
+                # Create new product instance
+                new_shop_item = Product(
+                    product_name=product_name,
+                    author=author,
+                    rating=rating,
+                    current_price=current_price,
+                    in_stock=in_stock,
+                    flash_sale=flash_sale,
+                    promotion_percentage=promotion_percentage,
+                    discounted_price=discounted_price,
+                    product_picture=file_path,
+                    category_id=category_id,
+                    subcategory_id=subcategory_id,
+                    warehouse_location='Main Warehouse',  # Default value
+                    low_stock_threshold=10  # Default value
+                )
+
+                # Add to database
                 db.session.add(new_shop_item)
                 db.session.commit()
-                flash(f'{product_name} added successfully!')
-                print('Product Added')
-                # Optionally, redirect to another page or refresh
-                return redirect(url_for('admin.shop_items'))  # Stay on the same page
+
+                # Log the activity
+                log_activity(
+                    action='create_product',
+                    entity_type='product',
+                    entity_id=new_shop_item.id,
+                    details={
+                        'product_name': product_name,
+                        'author': author,
+                        'price': current_price,
+                        'stock': in_stock,
+                        'category_id': category_id,
+                        'subcategory_id': subcategory_id,
+                        'promotion': promotion_percentage if promotion_percentage else 0
+                    }
+                )
+
+                flash(f'{product_name} added successfully!', 'success')
+                return redirect(url_for('admin.shop_items'))
 
             except Exception as e:
-                db.session.rollback()  # Rollback in case of error
-                print(e)
-                flash('An error occurred while adding the product. Please try again.')
+                db.session.rollback()
+                print(f"Error adding product: {e}")
+                flash('An error occurred while adding the product. Please try again.', 'error')
+                
+        elif request.method == 'POST':
+            # If form validation failed, log the errors
+            log_activity(
+                action='failed_product_creation',
+                entity_type='product',
+                details={'form_errors': form.errors}
+            )
+            
+        # GET request or form validation failed
+        return render_template('add_shop_items.html', 
+                             form=form, 
+                             categories=categories, 
+                             subcategories=subcategories)
 
-        return render_template('add_shop_items.html', form=form, categories=categories, subcategories=subcategories)
+    except Exception as e:
+        print(f"Error in add_shop_items: {e}")
+        flash('An unexpected error occurred. Please try again.', 'error')
+        return redirect(url_for('admin.admin_page'))
 
-    return render_template('404.html')
 
 
 @admin.route('/shop-items', methods=['GET', 'POST'])
 @login_required
+@admin_required
+@check_permission('manage_products')
 def shop_items():
-    if current_user.id == 1:
-        items = Product.query.order_by(Product.date_added).all()
-        low_stock_items = [item for item in items if item.in_stock < 10]  # Low stock threshold
-        return render_template('shop_items.html', items=items, low_stock_items=low_stock_items)
-    return render_template('404.html')
+    items = Product.query.order_by(Product.date_added).all()
+    low_stock_items = [item for item in items if item.in_stock < 10]
+    return render_template('shop_items.html', items=items, low_stock_items=low_stock_items)
+
 
 @admin.route('/update-item/<int:item_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
+@check_permission('manage_products')
 def update_item(item_id):
-    if current_user.id == 1:
-        # Fetch the item to update
+    try:
         item_to_update = Product.query.get_or_404(item_id)
-
-        # Initialize form
         form = ShopItemsForm()
 
         # Get categories and subcategories
@@ -127,6 +193,15 @@ def update_item(item_id):
 
         if form.validate_on_submit():
             try:
+                # Store original values for logging
+                original_values = {
+                    'product_name': item_to_update.product_name,
+                    'price': item_to_update.current_price,
+                    'stock': item_to_update.in_stock,
+                    'category': item_to_update.category_id,
+                    'subcategory': item_to_update.subcategory_id
+                }
+
                 # Update the item fields
                 item_to_update.product_name = form.product_name.data
                 item_to_update.author = form.author.data
@@ -140,27 +215,70 @@ def update_item(item_id):
                     (form.current_price.data * form.promotion_percentage.data / 100)
                 )
                 
-                # Important: Update category and subcategory
                 item_to_update.category_id = form.category.data
                 item_to_update.subcategory_id = form.subcategory.data
 
                 # Handle image upload if new image is provided
                 if form.product_picture.data:
                     file = form.product_picture.data
-                    file_name = secure_filename(file.filename)
-                    file_path = f'./media/{file_name}'
-                    file.save(file_path)
-                    item_to_update.product_picture = file_path
+                    if allowed_file(file.filename):
+                        filename = secure_filename(file.filename)
+                        file_path = os.path.join('./media', filename)
+                        
+                        # Ensure media directory exists
+                        os.makedirs('./media', exist_ok=True)
+                        
+                        file.save(file_path)
+                        item_to_update.product_picture = file_path
+                    else:
+                        flash('Invalid file type. Please upload an image file.', 'error')
+                        raise ValueError('Invalid file type')
 
                 # Commit all changes
                 db.session.commit()
-                flash(f'{item_to_update.product_name} updated successfully!', 'success')
-                return redirect('/shop-items')
 
+                # Log the update activity
+                log_activity(
+                    action='update_product',
+                    entity_type='product',
+                    entity_id=item_id,
+                    details={
+                        'original_values': original_values,
+                        'updated_values': {
+                            'product_name': form.product_name.data,
+                            'price': form.current_price.data,
+                            'stock': form.in_stock.data,
+                            'category': form.category.data,
+                            'subcategory': form.subcategory.data
+                        }
+                    }
+                )
+
+                flash(f'{item_to_update.product_name} updated successfully!', 'success')
+                return redirect(url_for('admin.shop_items'))
+
+            except ValueError as ve:
+                # File type error already handled
+                pass
             except Exception as e:
                 db.session.rollback()
-                print('Update error:', str(e))
+                print(f'Update error: {str(e)}')
                 flash('An error occurred while updating the item. Please try again.', 'error')
+                log_activity(
+                    action='failed_product_update',
+                    entity_type='product',
+                    entity_id=item_id,
+                    details={'error': str(e)}
+                )
+
+        elif request.method == 'POST':
+            # Log form validation errors
+            log_activity(
+                action='failed_product_update',
+                entity_type='product',
+                entity_id=item_id,
+                details={'form_errors': form.errors}
+            )
 
         # For both GET and failed POST
         return render_template(
@@ -168,94 +286,165 @@ def update_item(item_id):
             form=form,
             current_image=item_to_update.product_picture,
             categories=categories,
-            subcategories=subcategories
+            subcategories=subcategories,
+            item=item_to_update  # Added to help with form UI
         )
 
-    return render_template('404.html')
+    except Exception as e:
+        flash('Error accessing product information', 'error')
+        print(f"Error in update_item: {e}")
+        return render_template('404.html')
 
 @admin.route('/delete-item/<int:item_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
+@check_permission('manage_products')
 def delete_item(item_id):
-    if current_user.id == 1:
-        try:
-            item_to_delete = Product.query.get(item_id)
-            db.session.delete(item_to_delete)
-            db.session.commit()
-            flash('One Item deleted')
-            return redirect('/shop-items')
-        except Exception as e:
-            print('Item not deleted', e)
-            flash('Item not deleted!!')
-        return redirect('/shop-items')
+    try:
+        item_to_delete = Product.query.get(item_id)
+        db.session.delete(item_to_delete)
+        db.session.commit()
+        
+        log_activity(
+            action='delete_product',
+            entity_type='product',
+            entity_id=item_id,
+            details={'product_name': item_to_delete.product_name}
+        )
+        
+        flash('Product deleted successfully', 'success')
+        return redirect(url_for('admin.shop_items'))
+    except Exception as e:
+        print('Item not deleted', e)
+        flash('Error deleting product', 'error')
+        return redirect(url_for('admin.shop_items'))
 
-    return render_template('404.html')
 
 @admin.route('/view-orders')
 @login_required
+@admin_required
+@check_permission('manage_orders')
 def order_view():
-    if current_user.id == 1:
-        orders = Order.query.all()
-        return render_template('view_orders.html', orders=orders)
-    return render_template('404.html')
+    orders = Order.query.all()
+    return render_template('view_orders.html', orders=orders)
+
 
 @admin.route('/update-order/<int:order_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
+@check_permission('manage_orders')
 def update_order(order_id):
-    if current_user.id == 1:
-        form = OrderForm()
+    form = OrderForm()
+    order = Order.query.get_or_404(order_id)
 
-        order = Order.query.get(order_id)
+    if form.validate_on_submit():
+        try:
+            previous_status = order.status
+            order.status = form.order_status.data
+            db.session.commit()
+            
+            log_activity(
+                action='update_order',
+                entity_type='order',
+                entity_id=order_id,
+                details={
+                    'previous_status': previous_status,
+                    'new_status': order.status
+                }
+            )
+            
+            flash(f'Order {order_id} updated successfully', 'success')
+            return redirect(url_for('admin.order_view'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating order: {str(e)}', 'error')
+            return redirect(url_for('admin.order_view'))
 
-        if form.validate_on_submit():
-            status = form.order_status.data
-            order.status = status
-
-            try:
-                db.session.commit()
-                flash(f'Order {order_id} Updated successfully')
-                return redirect('/view-orders')
-            except Exception as e:
-                print(e)
-                flash(f'Order {order_id} not updated')
-                return redirect('/view-orders')
-
-        return render_template('order_update.html', form=form)
-
-    return render_template('404.html')
+    return render_template('order_update.html', form=form, order=order)
 
 
 @admin.route('/customers')
 @login_required
+@admin_required
+@check_permission('manage_users')
 def display_customers():
-    if current_user.id == 1:
-        customers = Customer.query.all()
-        return render_template('customers.html', customers=customers)
-    return render_template('404.html')
+    customers = Customer.query.all()
+    return render_template('customers.html', customers=customers)
 
 @admin.route('/admin-page')
 @login_required
+@admin_required
 def admin_page():
-    if current_user.id == 1:
+    try:
+        # Get statistics
+        total_orders = Order.query.count()
+        total_revenue = db.session.query(
+            db.func.sum(Order.price * Order.quantity)
+        ).scalar() or 0
+        low_stock_count = Product.query.filter(
+            Product.in_stock <= Product.low_stock_threshold
+        ).count()
+        active_users = Customer.query.filter_by(status='active').count()
+        
+        # Get recent activities
+        recent_activities = ActivityLog.query.order_by(
+            ActivityLog.timestamp.desc()
+        ).limit(5).all()
+
+        return render_template('admin.html',
+            total_orders=total_orders,
+            total_revenue="{:,.2f}".format(total_revenue),
+            low_stock_count=low_stock_count,
+            active_users=active_users,
+            recent_activities=recent_activities
+        )
+    except Exception as e:
+        flash('Error loading dashboard statistics', 'error')
+        print(f"Error in admin dashboard: {e}")
         return render_template('admin.html')
-    return render_template('404.html')
 @admin.route('/inventory-management')
 @login_required
+@admin_required
+@check_permission('manage_inventory')
 def inventory_management():
-    if current_user.id == 1:
+    try:
         # Get all products with their current stock levels
-        products = Product.query.all()
-        
+        products = Product.query.options(
+            joinedload(Product.category)
+        ).all()
+        print(f"Found {len(products)} products")  # Debug print
+
         # Get products with low stock
         low_stock_products = Product.query.filter(
             Product.in_stock <= Product.low_stock_threshold
+        ).options(
+            joinedload(Product.category)
         ).all()
+        print(f"Found {len(low_stock_products)} low stock products")  # Debug print
         
         # Group products by warehouse
         warehouse_inventory = {}
         for product in products:
-            if product.warehouse_location not in warehouse_inventory:
-                warehouse_inventory[product.warehouse_location] = []
-            warehouse_inventory[product.warehouse_location].append(product)
+            warehouse_location = product.warehouse_location or 'Main Warehouse'
+            if warehouse_location not in warehouse_inventory:
+                warehouse_inventory[warehouse_location] = []
+            warehouse_inventory[warehouse_location].append(product)
+        
+        print(f"Warehouse inventory: {warehouse_inventory.keys()}")  # Debug print
+        for warehouse, items in warehouse_inventory.items():
+            print(f"Warehouse {warehouse}: {len(items)} items")  # Debug print
+
+        # Let's also check if products have all required attributes
+        for product in products[:1]:  # Check first product as example
+            print(f"""
+            Product debug info:
+            - Name: {product.product_name}
+            - Stock: {product.in_stock}
+            - Threshold: {product.low_stock_threshold}
+            - Warehouse: {product.warehouse_location}
+            - Category: {product.category.name if product.category else 'No category'}
+            - Last Update: {product.last_stock_update}
+            """)
 
         return render_template(
             'inventory_management.html',
@@ -263,12 +452,17 @@ def inventory_management():
             low_stock_products=low_stock_products,
             warehouse_inventory=warehouse_inventory
         )
-    return render_template('404.html')
-
+    except Exception as e:
+        print(f"Error in inventory management: {str(e)}")  # Debug print
+        flash('Error loading inventory management page', 'error')
+        return redirect(url_for('admin.admin_page'))
+    
 @admin.route('/inventory-report')
 @login_required
+@admin_required
+@check_permission('view_reports')
 def inventory_report():
-    if current_user.id == 1:
+    try:
         # Basic stats
         total_products = Product.query.count()
         low_stock_items = Product.query.filter(
@@ -326,6 +520,16 @@ def inventory_report():
                 )
             }
 
+        # Log the activity
+        log_activity(
+            action='view_inventory_report',
+            entity_type='report',
+            details={
+                'total_products': total_products,
+                'low_stock_products': low_stock_products
+            }
+        )
+
         return render_template(
             'inventory_report.html',
             total_products=total_products,
@@ -336,7 +540,10 @@ def inventory_report():
             category_stock=category_stock,
             warehouse_stats=warehouse_stats
         )
-    return render_template('404.html')
+    except Exception as e:
+        flash('Error generating inventory report', 'error')
+        print(f"Error in inventory report: {e}")
+        return render_template('404.html')
 
 @admin.route('/update-inventory/<int:product_id>', methods=['GET', 'POST'])
 @login_required
@@ -398,3 +605,159 @@ def update_inventory(product_id):
 def get_subcategories(category_id):
     subcategories = SubCategory.query.filter_by(category_id=category_id).all()
     return jsonify({'subcategories': [{'id': subcategory.id, 'name': subcategory.name} for subcategory in subcategories]})
+@admin.route('/roles', methods=['GET'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def manage_roles():
+    try:
+        roles = Role.query.all()
+        roles_data = []
+        
+        for role in roles:
+            # Ensure permissions is a proper list
+            if isinstance(role.permissions, str):
+                try:
+                    permissions = json.loads(role.permissions)
+                except:
+                    permissions = []
+            else:
+                permissions = role.permissions or []
+                
+            role_data = {
+                'id': role.id,
+                'name': role.name,
+                'description': role.description or '',
+                'permissions': [p.strip() for p in permissions if p], # Clean up permissions
+                'user_count': role.users.count()
+            }
+            roles_data.append(role_data)
+            
+        return render_template('admin_roles.html', roles=roles_data)
+        
+    except Exception as e:
+        print(f"Error in manage_roles: {str(e)}")
+        flash('Error loading roles', 'error')
+        return redirect(url_for('admin.admin_page'))
+@admin.route('/roles/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def add_role():
+    form = RoleForm()
+    
+    if form.validate_on_submit():
+        try:
+            # Create new role
+            role = Role(
+                name=form.name.data,
+                description=form.description.data,
+                permissions=form.permissions.data  # Will be a list of selected permissions
+            )
+            
+            db.session.add(role)
+            db.session.commit()
+            
+            # Log the activity
+            log_activity(
+                action='create_role',
+                entity_type='role',
+                entity_id=role.id,
+                details={
+                    'role_name': role.name,
+                    'permissions': role.permissions
+                }
+            )
+            
+            flash('Role created successfully', 'success')
+            return redirect(url_for('admin.manage_roles'))
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating role: {str(e)}")
+            flash('Error creating role', 'error')
+    
+    return render_template('add_role.html', form=form)
+
+@admin.route('/users/<int:user_id>/roles', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def assign_roles(user_id):
+    user = Customer.query.get_or_404(user_id)
+    form = AssignRoleForm()
+    form.roles.choices = [(r.id, r.name) for r in Role.query.all()]
+    
+    if form.validate_on_submit():
+        try:
+            previous_roles = [role.name for role in user.roles]
+            user.roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
+            db.session.commit()
+            
+            log_activity(
+                action='assign_roles',
+                entity_type='user',
+                entity_id=user.id,
+                details={
+                    'previous_roles': previous_roles,
+                    'new_roles': [role.name for role in user.roles]
+                }
+            )
+            
+            flash('Roles assigned successfully', 'success')
+            return redirect(url_for('admin.display_customers'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error assigning roles: {str(e)}', 'error')
+    
+    form.roles.data = [role.id for role in user.roles]
+    return render_template('assign_roles.html', form=form, user=user)
+
+@admin.route('/activity-logs')
+@login_required
+@admin_required
+@check_permission('view_reports')
+def view_activity_logs():
+    logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).all()
+    return render_template('activity_logs.html', logs=logs)
+
+@admin.route('/update-customer-status/<int:customer_id>', methods=['POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def update_customer_status(customer_id):
+    try:
+        data = request.get_json()
+        customer = Customer.query.get_or_404(customer_id)
+        
+        if data['action'] == 'suspend':
+            customer.status = 'suspended'
+            message = 'Account suspended'
+        elif data['action'] == 'activate':
+            customer.status = 'active'
+            message = 'Account activated'
+        
+        db.session.commit()
+        
+        log_activity(
+            action='update_customer_status',
+            entity_type='customer',
+            entity_id=customer_id,
+            details={
+                'new_status': customer.status,
+                'action': data['action']
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating customer status: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
