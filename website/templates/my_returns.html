@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}My Returns{% endblock %}
+
+{% block body %}
+<div class="container my-5">
+    <div class="row">
+    {% if returns %}
+    <h1 class="text-center mb-5">My Returns</h1>
+    <div class="card shadow">
+        <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Return ID</th>
+                                <th>Product</th>
+                                <th>Order ID</th>
+                                <th>Date Requested</th>
+                                <th>Status</th>
+                                <th>Resolution</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for return in returns %}
+                            <tr>
+                                <td>#{{ return.id }}</td>
+                                <td>{{ return.product.product_name }}</td>
+                                <td>#{{ return.order.id }}</td>
+                                <td>{{ return.return_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if return.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif return.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif return.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if return.resolution %}
+                                        {{ return.resolution|title }}
+                                        {% if return.refund_amount %}
+                                            (${{ "%.2f"|format(return.refund_amount) }})
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-primary"
+                                            onclick="viewReturnDetails('{{ return.id }}', true)"
+                                            title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h5>No Returns Found</h5>
+                <p class="text-muted mb-0">You haven't made any return requests yet.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Return Details Modal -->
+<div class="modal fade" id="returnDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="returnDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewReturnDetails(returnId, isAdmin) {
+    const modal = new bootstrap.Modal(document.getElementById('returnDetailsModal'));
+    const content = document.getElementById('returnDetailsContent');
+    modal.show();
+
+    let url = '/return-details/customer/' + returnId;  // Default to customer route
+
+    if (isAdmin) {
+        url = '/return-details/admin/' + returnId;  // If it's an admin, use the admin route
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = generateReturnDetailsHTML(data.return);
+            } else {
+                content.innerHTML = '<div class="alert alert-danger mb-0">Error loading return details</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div class="alert alert-danger mb-0">Error loading return details</div>';
+        });
+}
+
+function generateReturnDetailsHTML(returnData) {
+    return `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Return Information</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-${getStatusBadgeColor(returnData.status)}">
+                            ${returnData.status}
+                        </span>
+                    </dd>
+                    <dt class="col-sm-4">Request Date</dt>
+                    <dd class="col-sm-8">${returnData.return_date}</dd>
+                    <dt class="col-sm-4">Resolution</dt>
+                    <dd class="col-sm-8">${returnData.resolution || '-'}</dd>
+                    ${returnData.tracking_number ? `
+                        <dt class="col-sm-4">Tracking #</dt>
+                        <dd class="col-sm-8">${returnData.tracking_number}</dd>
+                    ` : ''}
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <h6>Order Information</h6>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Order ID</dt>
+                    <dd class="col-sm-8">#${returnData.order_id}</dd>
+                    <dt class="col-sm-4">Product</dt>
+                    <dd class="col-sm-8">${returnData.product_name}</dd>
+                    <dt class="col-sm-4">Quantity</dt>
+                    <dd class="col-sm-8">${returnData.quantity}</dd>
+                </dl>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <h6>Return Reason</h6>
+                <p class="mb-0">${returnData.reason}</p>
+            </div>
+        </div>
+    `;
+}
+
+function getStatusBadgeColor(status) {
+    switch(status) {
+        case 'pending': return 'warning';
+        case 'approved': return 'success';
+        case 'rejected': return 'danger';
+        case 'completed': return 'info';
+        default: return 'secondary';
+    }
+}
+</script>
+{% endblock %}

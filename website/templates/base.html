@@ -8,147 +8,413 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <title>Kitabi | {% block title %} {% endblock %}</title>
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 56px;
+        }
+
+        /* Navbar styles */
+        .navbar .dropdown-menu {
+            min-width: 200px;
+            padding: 0.5rem 0;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .navbar .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .navbar .dropdown-item i {
+            width: 1.25rem;
+        }
+
+        .navbar .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Cart button styles */
+        .btn-outline-primary .badge {
+            transform: translate(40%, -40%) !important;
+        }
+
+        /* Sidebar base styles */
+        .sidebar,
+        .admin-sidebar {
+            height: calc(100vh - 56px);
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+            padding: 1rem;
+        }
+
+        .sidebar {
+            background-color: white;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-sidebar {
+            background-color: #f8f9fa;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Navigation items */
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            color: #495057;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-nav-item:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+            text-decoration: none;
+        }
+
+        .sidebar-nav-item i {
+            width: 1.5rem;
+            margin-right: 0.75rem;
+        }
+
+        /* Admin nav items */
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #495057;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+            margin-bottom: 0.25rem;
+        }
+
+        .admin-nav-item:hover,
+        .admin-nav-item.active {
+            background-color: #e9ecef;
+            color: #0d6efd;
+            text-decoration: none;
+        }
+
+        .admin-nav-item i {
+            width: 1.5rem;
+            margin-right: 0.75rem;
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding-top: 20px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            background-color: #343a40;
+            color: white;
+            padding: 2rem 0;
+        }
+
+        @media (min-width: 992px) {
+    body.user .main-content,
+    body.user footer,
+    body.guest .main-content,
+    body.guest footer {
+        margin-left: 280px;
+    }
+
+    body.admin-user .main-content,
+    body.admin-user footer {
+        margin-left: 280px;
+    }
+}
+
+        @media (max-width: 991.98px) {
+            .sidebar,
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show-sidebar,
+            .admin-sidebar.show-sidebar {
+                transform: translateX(0);
+            }
+
+            .main-content,
+            footer {
+                margin-left: 0 !important;
+            }
+
+            .navbar-brand {
+                order: 1;
+            }
+
+            #sidebarToggle {
+                order: 0;
+                margin-right: 1rem;
+            }
+
+            .user-nav {
+                order: 2;
+            }
+        }
+    </style>
+
+    <title>Kitabi | {% block title %}{% endblock %}</title>
 </head>
-<body>
+<body class="{% if current_user.is_authenticated %}{% if current_user.is_admin %}admin-user{% else %}user{% endif %}{% else %}guest{% endif %}">
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-book-open text-primary"></i>
-                <span class="font-weight-bold ml-2">Kitabi</span>
+<nav class="navbar navbar-light bg-white fixed-top shadow-sm">
+    <div class="container-fluid">
+        <div class="d-flex align-items-center">
+            {% if current_user.is_authenticated %}
+                <button id="sidebarToggle" class="btn d-lg-none">
+                    <i class="fas fa-bars"></i>
+                </button>
+            {% endif %}
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-book-open text-primary me-2"></i>
+                <span class="font-weight-bold">Kitabi</span>
             </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <form class="form-inline mx-auto w-50">
-                    <div class="input-group w-100">
-                        <input type="text" class="form-control" placeholder="Search for books...">
-                        <div class="input-group-append">
-                            <button class="btn btn-primary" type="submit">
-                                <i class="fas fa-search"></i>
+        </div>
+    
+        {% if not current_user.is_authenticated or not current_user.is_admin %}
+            <!-- Search Bar -->
+            <form class="d-none d-md-flex mx-auto" style="width: 40%;">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search for books...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <!-- Empty div to maintain spacing when search bar is hidden -->
+            <div class="mx-auto" style="width: 40%;"></div>
+        {% endif %}
+
+        <div class="d-flex align-items-center user-nav">
+            {% if current_user.is_authenticated %}
+                {% if not current_user.is_admin %}
+                    <a href="/cart" class="btn btn-outline-primary me-3 position-relative">
+                        <i class="fas fa-shopping-cart"></i>
+                        {% if current_user.cart_items|length > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ current_user.cart_items|length }}
+                            </span>
+                        {% endif %}
+                    </a>
+                {% endif %}
+
+                <div class="dropdown">
+                    <button class="btn btn-link text-dark text-decoration-none dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user me-1"></i>
+                        {{ current_user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li>
+                            <a class="dropdown-item" href="/account/{{current_user.id}}">
+                                <i class="fas fa-user-cog me-2"></i>Profile Settings
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('auth.log_out') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Log Out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+    <!-- Sidebar based on user type -->
+    {% if current_user.is_authenticated %}
+        {% if current_user.is_admin %}
+            <!-- Admin Sidebar -->
+            <div class="admin-sidebar">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-shield fa-3x text-primary"></i>
+                    <h5 class="mt-2">Admin Panel</h5>
+                </div>
+
+                <div class="nav flex-column">
+                    <a class="admin-nav-item" href="{{ url_for('admin.admin_page') }}">
+                        <i class="fas fa-tachometer-alt"></i>Dashboard
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.shop_items') }}">
+                        <i class="fas fa-tags"></i>Manage Products
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.inventory_management') }}">
+                        <i class="fas fa-boxes"></i>Manage Inventory
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.returns_management') }}">
+                        <i class="fas fa-undo"></i>Manage Returns
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.order_view') }}">
+                        <i class="fas fa-shopping-cart"></i>Manage Orders
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.manage_roles') }}">
+                        <i class="fas fa-user-cog"></i>Manage Roles
+                    </a>
+                    <a class="admin-nav-item" href="{{ url_for('admin.view_activity_logs') }}">
+                        <i class="fas fa-history"></i>Activity Logs
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <!-- Regular User Sidebar -->
+            <div class="sidebar">
+                <!-- Categories Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Categories</div>
+                    <div class="accordion" id="categoriesAccordion">
+                        {% for category, subcategories in categories.items() %}
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                    <button class="accordion-button collapsed py-2" type="button" 
+                                            data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ loop.index }}">
+                                        {{ category }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                     data-bs-parent="#categoriesAccordion">
+                                    <div class="accordion-body py-1">
+                                        <ul class="list-unstyled mb-0">
+                                            {% for subcategory in subcategories %}
+                                                <li class="mb-1">
+                                                    <a href="{{ url_for('views.filtered_products', 
+                                                           category=category, subcategory=subcategory) }}" 
+                                                       class="text-decoration-none text-muted small">
+                                                        {{ subcategory }}
+                                                    </a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Orders and Cart Section -->
+                <div class="nav-section">
+                    <a href="/orders" class="sidebar-nav-item">
+                        <i class="fas fa-shopping-bag"></i>Orders
+                        {% if current_user.orders|length > 0 %}
+                            <span class="badge bg-primary ms-auto">{{ current_user.orders|length }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="/cart" class="sidebar-nav-item">
+                        <i class="fas fa-shopping-cart"></i>Cart
+                        {% if current_user.cart_items|length > 0 %}
+                            <span class="badge bg-primary ms-auto">{{ current_user.cart_items|length }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+
+                <!-- Account Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">Account</div>
+                    <a href="/account/{{current_user.id}}" class="sidebar-nav-item">
+                        <i class="fas fa-user-cog"></i>Profile Settings
+                    </a>
+                    <a href="{{ url_for('auth.log_out') }}" class="sidebar-nav-item">
+                        <i class="fas fa-sign-out-alt"></i>Log Out
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+            <!-- Non-authenticated User Sidebar - Only Categories -->
+
+    <div class="sidebar">
+        <div class="nav-section">
+            <div class="nav-section-title">Categories</div>
+            <div class="accordion" id="categoriesAccordion">
+                {% for category, subcategories in categories.items() %}
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button collapsed py-2" type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ loop.index }}">
+                                {{ category }}
                             </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                             data-bs-parent="#categoriesAccordion">
+                            <div class="accordion-body py-1">
+                                <ul class="list-unstyled mb-0">
+                                    {% for subcategory in subcategories %}
+                                        <li class="mb-1">
+                                            <a href="{{ url_for('views.filtered_products', 
+                                                   category=category, subcategory=subcategory) }}" 
+                                               class="text-decoration-none text-muted small">
+                                                {{ subcategory }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </form>
-                <ul class="navbar-nav ml-auto">
-                    {% if current_user.is_authenticated %}
-                    {% if current_user.is_admin or current_user.is_superadmin %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
-                               data-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-cogs" style="color: #ff6347;"></i> Admin Panel
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
-                                <a class="dropdown-item" href="{{ url_for('admin.admin_page') }}">
-                                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                                </a>
-                                
-                                {% if current_user.is_superadmin or current_user.has_permission('manage_products') %}
-                                <a class="dropdown-item" href="{{ url_for('admin.shop_items') }}">
-                                    <i class="fas fa-books"></i> Manage Products
-                                </a>
-                                {% endif %}
-                
-                                {% if current_user.is_superadmin or current_user.has_permission('manage_inventory') %}
-                                <a class="dropdown-item" href="{{ url_for('admin.inventory_management') }}">
-                                    <i class="fas fa-boxes"></i> Inventory
-                                </a>
-                                <a class="dropdown-item" href="{{ url_for('admin.inventory_report') }}">
-                                    <i class="fas fa-chart-bar"></i> Inventory Report
-                                </a>
-                                {% endif %}
-                
-                                {% if current_user.is_superadmin or current_user.has_permission('manage_orders') %}
-                                <a class="dropdown-item" href="{{ url_for('admin.order_view') }}">
-                                    <i class="fas fa-shopping-bag"></i> Orders
-                                </a>
-                                {% endif %}
-                
-                                {% if current_user.is_superadmin or current_user.has_permission('manage_users') %}
-                                <a class="dropdown-item" href="{{ url_for('admin.manage_roles') }}">
-                                    <i class="fas fa-user-tag"></i> Manage Roles
-                                </a>
-                                <a class="dropdown-item" href="{{ url_for('admin.display_customers') }}">
-                                    <i class="fas fa-users"></i> Customers
-                                </a>
-                                {% endif %}
-                
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{{ url_for('admin.view_activity_logs') }}">
-                                    <i class="fas fa-history"></i> Activity Logs
-                                </a>
-                            </div>
-                        </li>
-                    {% endif %}
-                    
-                    {% if not current_user.is_admin %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="/orders">
-                            <i class="fas fa-shopping-bag"></i> Orders
-                            {% if current_user.orders|length > 0 %}
-                            <span class="badge badge-primary">{{ current_user.orders|length }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="/cart">
-                            <i class="fas fa-shopping-cart"></i> Cart
-                            {% if current_user.cart_items|length > 0 %}
-                            <span class="badge badge-primary">{{ current_user.cart_items|length }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    {% endif %}
-                
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                               data-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user-circle"></i> {{ current_user.username }}
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="/account/{{current_user.id}}">
-                                    <i class="fas fa-user-cog"></i> Profile Settings
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="{{ url_for('auth.log_out') }}">
-                                    <i class="fas fa-sign-out-alt"></i> Log Out
-                                </a>
-                            </div>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('auth.login') }}">
-                                <i class="fas fa-sign-in-alt"></i> Log In
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
+                {% endfor %}
             </div>
         </div>
-    </nav>
+    </div>
+{% endif %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" 
-                     role="alert" style="margin-top: 5rem;">
-                    <strong>{{ message }}</strong>
-                    <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <!-- Main Content -->
+    <main class="main-content">
+         <div class="container pt-2">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                            <strong>{{ message }}</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-    {% block body %}
-    {% endblock %}
+            {% block body %}{% endblock %}
+        </div>
+    </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container">
+    <footer>
+         <div class="container pt-2">
             <div class="row">
                 <div class="col-md-4">
                     <h5>About Kitabi</h5>
@@ -160,27 +426,53 @@
                         <li><a href="#" class="text-white-50">About Us</a></li>
                         <li><a href="#" class="text-white-50">Contact</a></li>
                         <li><a href="#" class="text-white-50">FAQ</a></li>
-                        <li><a href="#" class="text-white-50">Privacy Policy</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Newsletter</h5>
-                    <form>
-                        <div class="input-group">
-                            <input type="email" class="form-control" placeholder="Enter your email">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="submit">Subscribe</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    <li><a href="#" class="text-white-50">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h5>Newsletter</h5>
+                <form>
+                    <div class="input-group">
+                        <input type="email" class="form-control" placeholder="Enter your email">
+                        <button class="btn btn-primary" type="submit">Subscribe</button>
+                    </div>
+                </form>
             </div>
         </div>
-    </footer>
+    </div>
+</footer>
 
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.querySelector('.sidebar, .admin-sidebar');
+            
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('show-sidebar');
+                });
+            }
+
+            // Activate current admin nav item based on URL
+            if (document.querySelector('.admin-sidebar')) {
+                const currentPath = window.location.pathname;
+                const navLinks = document.querySelectorAll('.admin-nav-item');
+                
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === currentPath) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, FloatField, PasswordField, EmailField, BooleanField, SubmitField, FileField, SelectField, TextAreaField, SelectMultipleField
-from wtforms.validators import DataRequired,NumberRange, ValidationError, length
+from wtforms.validators import DataRequired,NumberRange, ValidationError, length, Optional
 from flask_wtf.file import FileAllowed
 
 class SignUpForm(FlaskForm):
@@ -127,3 +127,50 @@ class RoleForm(FlaskForm):
 class AssignRoleForm(FlaskForm):
     roles = SelectMultipleField('Roles', coerce=int)
     submit = SubmitField('Assign Roles')
+
+class CustomerReturnForm(FlaskForm):
+    reason = TextAreaField('Why are you returning this item?', 
+        validators=[DataRequired(), Length(min=5, max=500)],
+        render_kw={"placeholder": "Please explain the reason for your return..."}
+    )
+    quantity = IntegerField('Quantity to Return',
+        validators=[DataRequired(), NumberRange(min=1)]
+    )
+    preferred_resolution = SelectField('Preferred Resolution',
+        choices=[
+            ('refund', 'Refund to Original Payment Method'),
+            ('replacement', 'Send Replacement Item')
+        ],
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Submit Return Request')
+
+class ProcessReturnForm(FlaskForm):
+    status = SelectField('Update Status',
+        choices=[
+            ('pending', 'Pending Review'),
+            ('approved', 'Approve Return'),
+            ('rejected', 'Reject Return'),
+            ('completed', 'Mark as Completed')
+        ],
+        validators=[DataRequired()]
+    )
+    resolution = SelectField('Resolution',
+        choices=[
+            ('refund', 'Issue Refund'),
+            ('replacement', 'Send Replacement'),
+            ('rejected', 'Return Rejected')
+        ],
+        validators=[DataRequired()]
+    )
+    refund_amount = FloatField('Refund Amount',
+        validators=[Optional(), NumberRange(min=0)]
+    )
+    tracking_number = StringField('Return Tracking Number',
+        validators=[Optional(), Length(max=100)]
+    )
+    admin_notes = TextAreaField('Admin Notes',
+        validators=[Optional(), Length(max=1000)],
+        render_kw={"placeholder": "Add any internal notes about this return..."}
+    )
+    submit = SubmitField('Process Return')

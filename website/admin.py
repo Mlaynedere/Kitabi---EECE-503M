@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, render_template, flash, send_from_directory, redirect, request, url_for
 from flask_login import login_required, current_user
 from .decorators import admin_required, check_permission
-from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm
+from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm
 from werkzeug.utils import secure_filename
-from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role
+from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return
 from . import db
 from sqlalchemy.orm import joinedload
 from datetime import datetime
@@ -390,12 +390,14 @@ def admin_page():
         recent_activities = ActivityLog.query.order_by(
             ActivityLog.timestamp.desc()
         ).limit(5).all()
+        pending_returns = Return.query.filter_by(status='pending').count()
 
         return render_template('admin.html',
             total_orders=total_orders,
             total_revenue="{:,.2f}".format(total_revenue),
             low_stock_count=low_stock_count,
             active_users=active_users,
+            pending_returns=pending_returns,
             recent_activities=recent_activities
         )
     except Exception as e:
@@ -721,43 +723,129 @@ def view_activity_logs():
     logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).all()
     return render_template('activity_logs.html', logs=logs)
 
-@admin.route('/update-customer-status/<int:customer_id>', methods=['POST'])
+@admin.route('/returns-management')
 @login_required
 @admin_required
-@check_permission('manage_users')
-def update_customer_status(customer_id):
+@check_permission('manage_returns')
+def returns_management():
     try:
-        data = request.get_json()
-        customer = Customer.query.get_or_404(customer_id)
+        returns = Return.query.options(
+            joinedload(Return.customer),
+            joinedload(Return.product),
+            joinedload(Return.order)
+        ).order_by(Return.return_date.desc()).all()
         
-        if data['action'] == 'suspend':
-            customer.status = 'suspended'
-            message = 'Account suspended'
-        elif data['action'] == 'activate':
-            customer.status = 'active'
-            message = 'Account activated'
+        return render_template('admin_returns.html', returns=returns)
+    except Exception as e:
+        flash('Error loading returns', 'error')
+        print(f"Error in returns management: {e}")
+        return redirect(url_for('admin.admin_page'))
+
+@admin.route('/process-return/<int:return_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_returns')
+def process_return(return_id):
+    try:
+        return_request = Return.query.get_or_404(return_id)
+        order = return_request.order
+        form = ProcessReturnForm()
+        quantity_returned = Return.query.filter_by(order_link=order.id).filter(Return.id != return_id).with_entities(db.func.sum(Return.quantity)).scalar() or 0
         
-        db.session.commit()
-        
-        log_activity(
-            action='update_customer_status',
-            entity_type='customer',
-            entity_id=customer_id,
-            details={
-                'new_status': customer.status,
-                'action': data['action']
-            }
-        )
-        
+        # Calculate the remaining quantity that can be returned
+        remaining_quantity = order.quantity - quantity_returned
+
+        # Calculate the max refund based on the remaining quantity
+        max_refund_amount = remaining_quantity * order.price
+
+        if form.validate_on_submit():
+            original_status = return_request.status
+            
+            return_request.status = form.status.data
+            return_request.resolution = form.resolution.data
+            return_request.admin_notes = form.admin_notes.data
+            return_request.processed_by = current_user.id
+            return_request.processed_date = datetime.utcnow()
+
+            if form.resolution.data == 'refund':
+                return_request.refund_amount = form.refund_amount.data
+            
+            if form.tracking_number.data:
+                return_request.tracking_number = form.tracking_number.data
+
+            if form.status.data == 'approved' and form.resolution.data == 'replacement':
+                # Create new order for replacement
+                replacement_order = Order(
+                    customer_link=return_request.customer_link,
+                    product_link=return_request.product_link,
+                    quantity=return_request.quantity,
+                    price=0,  # Free replacement
+                    status='Processing',
+                    payment_id='replacement'
+                )
+                db.session.add(replacement_order)
+                return_request.replacement_order_id = replacement_order.id
+
+            db.session.commit()
+
+            # Log the activity
+            log_activity(
+                action='process_return',
+                entity_type='return',
+                entity_id=return_id,
+                details={
+                    'previous_status': original_status,
+                    'new_status': return_request.status,
+                    'resolution': return_request.resolution
+                }
+            )
+
+            flash('Return request processed successfully', 'success')
+            return redirect(url_for('admin.returns_management'))
+
+        # For GET request, pre-populate form
+        if request.method == 'GET':
+            form.status.data = return_request.status
+            form.resolution.data = return_request.resolution
+            form.admin_notes.data = return_request.admin_notes
+            form.refund_amount.data = return_request.refund_amount
+            form.tracking_number.data = return_request.tracking_number
+
+        return render_template('process_return.html', 
+                            form=form, 
+                            return_request=return_request,
+                            max_refund_amount=max_refund_amount)
+
+    except Exception as e:
+        flash('Error processing return request', 'error')
+        print(f"Error in process return: {e}")
+        return redirect(url_for('admin.returns_management'))
+
+@admin.route('/return-details/admin/<int:return_id>')
+@login_required
+@admin_required
+@check_permission('manage_returns')
+def return_details(return_id):
+    try:
+        return_request = Return.query.get_or_404(return_id)
         return jsonify({
             'success': True,
-            'message': message
+            'return': {
+                'id': return_request.id,
+                'customer_name': return_request.customer.full_name,
+                'customer_email': return_request.customer.email,
+                'product_name': return_request.product.product_name,
+                'order_id': return_request.order_link,
+                'return_date': return_request.return_date.strftime('%Y-%m-%d %H:%M'),
+                'status': return_request.status,
+                'reason': return_request.reason,
+                'resolution': return_request.resolution,
+                'refund_amount': return_request.refund_amount,
+                'tracking_number': return_request.tracking_number
+            }
         })
-        
     except Exception as e:
-        db.session.rollback()
-        print(f"Error updating customer status: {e}")
         return jsonify({
             'success': False,
-            'message': str(e)
+            'error': str(e)
         }), 500

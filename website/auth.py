@@ -3,7 +3,7 @@ from .forms import LoginForm, SignUpForm, PasswordChangeForm
 from .models import Customer
 from . import db
 from flask_login import login_user, login_required, logout_user, current_user
-
+from .utils import get_categories_dict
 auth = Blueprint('auth', __name__)
 
 
@@ -126,8 +126,9 @@ def log_out():
 @login_required
 def account(user_id):
     user = Customer.query.get(user_id)
-    return render_template('account.html', current_user = user)
-
+    return render_template('account.html', 
+                         current_user=user,
+                         categories=get_categories_dict())
 
 @auth.route('/change-password/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -151,4 +152,4 @@ def change_password(user_id):
         else:
             flash('Current Password is Incorrect')
 
-    return render_template('change_password.html', form=form)
+    return render_template('change_password.html', form=form, categories=get_categories_dict())

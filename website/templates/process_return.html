@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Process Return{% endblock %}
+
+{% block body %}
+<div class="container pt-5">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-undo"></i> Process Return Request</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('admin.returns_management') }}">Returns</a></li>
+                            <li class="breadcrumb-item active">Process Return</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Return Details -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Return Request Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Return ID</dt>
+                        <dd class="col-sm-8">#{{ return_request.id }}</dd>
+
+                        <dt class="col-sm-4">Customer</dt>
+                        <dd class="col-sm-8">{{ return_request.customer.full_name }}</dd>
+
+                        <dt class="col-sm-4">Product</dt>
+                        <dd class="col-sm-8">{{ return_request.product.product_name }}</dd>
+
+                        <dt class="col-sm-4">Order ID</dt>
+                        <dd class="col-sm-8">#{{ return_request.order.id }}</dd>
+
+                        <dt class="col-sm-4">Return Date</dt>
+                        <dd class="col-sm-8">{{ return_request.return_date.strftime('%Y-%m-%d') }}</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-warning">{{ return_request.status|title }}</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Return Reason</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ return_request.reason }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process Return Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Process Return</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.csrf_token }}
+
+                        <div class="mb-3">
+                            {{ form.status.label(class="form-label") }}
+                            {{ form.status(class="form-select") }}
+                            {% if form.status.errors %}
+                                {% for error in form.status.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.resolution.label(class="form-label") }}
+                            {{ form.resolution(class="form-select") }}
+                            {% if form.resolution.errors %}
+                                {% for error in form.resolution.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3" id="refundAmountDiv">
+                            {{ form.refund_amount.label(class="form-label") }}
+                            {{ form.refund_amount(class="form-control", min="0", max=max_refund_amount) }}
+                            {% if form.refund_amount.errors %}
+                                {% for error in form.refund_amount.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                            <small class="form-text text-muted">Maximum allowed refund: ${{ "%.2f"|format(max_refund_amount) }}</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.tracking_number.label(class="form-label") }}
+                            {{ form.tracking_number(class="form-control") }}
+                            {% if form.tracking_number.errors %}
+                                {% for error in form.tracking_number.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.admin_notes.label(class="form-label") }}
+                            {{ form.admin_notes(class="form-control", rows="4") }}
+                            {% if form.admin_notes.errors %}
+                                {% for error in form.admin_notes.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('admin.returns_management') }}" class="btn btn-secondary me-2">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Returns
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i>Process Return
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resolutionSelect = document.querySelector('[name="resolution"]');
+    const refundAmountDiv = document.getElementById('refundAmountDiv');
+    
+    function toggleRefundAmount() {
+        if (resolutionSelect.value === 'refund') {
+            refundAmountDiv.style.display = 'block';
+        } else {
+            refundAmountDiv.style.display = 'none';
+        }
+    }
+    
+    resolutionSelect.addEventListener('change', toggleRefundAmount);
+    toggleRefundAmount(); // Initial state
+});
+</script>
+{% endblock %}

@@ -24,7 +24,8 @@ class Customer(db.Model, UserMixin):
     cart_items = db.relationship('Cart', back_populates='customer', lazy=True)
     orders = db.relationship('Order', back_populates='customer', lazy=True)
     activity_logs = db.relationship('ActivityLog', back_populates='user', lazy=True)
-    
+    returns = db.relationship('Return', foreign_keys='Return.customer_link', back_populates='customer', lazy=True)
+
     # Relationship with roles
     roles = db.relationship(
         'Role',
@@ -104,6 +105,7 @@ class Product(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
     subcategory_id = db.Column(db.Integer, db.ForeignKey('sub_category.id'), nullable=False)
     last_stock_update = db.Column(db.DateTime, default=datetime.utcnow)
+    returns = db.relationship('Return', foreign_keys='Return.product_link', back_populates='product', lazy=True)
 
     carts = db.relationship('Cart', back_populates='product', lazy=True)
     orders = db.relationship('Order', back_populates='product', lazy=True)
@@ -134,7 +136,8 @@ class Order(db.Model):
     payment_id = db.Column(db.String(1000), nullable=False)
     customer_link = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     product_link = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-    
+    returns = db.relationship('Return', foreign_keys='Return.order_link', back_populates='order', lazy=True)
+
     customer = db.relationship('Customer', back_populates='orders')
     product = db.relationship('Product', back_populates='orders')
     
@@ -185,3 +188,30 @@ class ActivityLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('Customer', back_populates='activity_logs')
+
+
+class Return(db.Model):
+    __tablename__ = 'returns'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_link = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    customer_link = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
+    product_link = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    return_date = db.Column(db.DateTime, default=datetime.utcnow)
+    reason = db.Column(db.String(500), nullable=False)
+    status = db.Column(db.String(50), default='pending')  # pending, approved, rejected, completed
+    resolution = db.Column(db.String(50))  # refund, replacement, rejected
+    refund_amount = db.Column(db.Float)
+    admin_notes = db.Column(db.Text)
+    processed_by = db.Column(db.Integer, db.ForeignKey('customer.id'))
+    processed_date = db.Column(db.DateTime)
+    tracking_number = db.Column(db.String(100))
+    replacement_order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+
+    # Relationships
+    order = db.relationship('Order', foreign_keys=[order_link], back_populates='returns')
+    customer = db.relationship('Customer', foreign_keys=[customer_link], back_populates='returns')
+    product = db.relationship('Product', foreign_keys=[product_link], back_populates='returns')
+    admin = db.relationship('Customer', foreign_keys=[processed_by], backref='processed_returns')
+    replacement_order = db.relationship('Order', foreign_keys=[replacement_order_id], backref='replacement_for')

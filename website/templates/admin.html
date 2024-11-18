@@ -3,71 +3,10 @@
 {% block title %}Admin Dashboard{% endblock %}
 
 {% block body %}
-<div class="container-fluid">
-    <div class="row">
-<!-- Sidebar -->
-<nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-    <div class="position-sticky pt-3">
-        <div class="text-center mb-4">
-            <i class="fas fa-user-shield fa-3x text-primary"></i>
-            <h5 class="mt-2">Admin Panel</h5>
-        </div>
-
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ url_for('admin.admin_page') }}">
-                    <i class="fas fa-tachometer-alt me-2"></i>
-                    Dashboard
-                </a>
-            </li>
-
-            <!-- Inventory Section -->
-            <li class="nav-item mb-1">
-                <a class="nav-link" href="{{ url_for('admin.inventory_management') }}">
-                    <i class="fas fa-boxes me-2"></i>
-                    Manage Inventory
-                </a>
-
-            </li>
-
-            <!-- Products Section -->
-            <li class="nav-item mb-1">
-                <a class="nav-link" href="{{ url_for('admin.shop_items') }}">
-                    <i class="fas fa-tags me-2"></i>
-                    Manage Products
-                </a>
-
-            </li>
-
-            <!-- Orders Section -->
-            <li class="nav-item mb-1">
-                <a class="nav-link" href="{{ url_for('admin.order_view') }}">
-                    <i class="fas fa-shopping-cart me-2"></i>
-                    Manage Orders
-                </a>
-            </li>
-
-            <!-- Users Section -->
-            <li class="nav-item mb-1">
-                <a class="nav-link" href="{{ url_for('admin.manage_roles') }}">
-                    <i class="fas fa-user-cog me-2"></i>
-                    Manage Roles
-                </a>
-
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin.view_activity_logs') }}">
-                    <i class="fas fa-history me-2"></i>
-                    Activity Logs
-                </a>
-            </li>
-        </ul>
-    </div>
-</nav>
+ <div class="container pt-2">
+    <div class="row mb-4">
 
         <!-- Main Content Area -->
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 mt-3">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
                 <h1 class="h2">Dashboard Overview</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
@@ -140,6 +79,19 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-secondary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">Pending Returns</h6>
+                                <h2 class="mt-2 mb-0">{{ pending_returns|default(0) }}</h2>
+                            </div>
+                            <i class="fas fa-undo fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Quick Actions & Activity -->
             <div class="row g-4 mb-4">
@@ -167,10 +119,31 @@
                                     </a>
                                 </div>
                                 <div class="col-6">
+                                    <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-primary w-100">
+                                        <i class="fas fa-plus me-2"></i>Add Product
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-info w-100">
+                                        <i class="fas fa-boxes me-2"></i>Update Stock
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.order_view') }}" class="btn btn-success w-100">
+                                        <i class="fas fa-clipboard-list me-2"></i>View Orders
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ url_for('admin.returns_management') }}" class="btn btn-warning w-100">
+                                        <i class="fas fa-undo me-2"></i>Manage Returns
+                                    </a>
+                                </div>
+                                <div class="col-6">
                                     <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-warning w-100">
                                         <i class="fas fa-chart-bar me-2"></i>Reports
                                     </a>
                                 </div>
+
                             </div>
                         </div>
                     </div>
@@ -205,7 +178,6 @@
                     </div>
                 </div>
             </div>
-        </main>
     </div>
 </div>
 {% endblock %}

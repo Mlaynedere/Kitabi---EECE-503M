@@ -3,13 +3,14 @@
 {% block title %}Inventory Report{% endblock %}
 
 {% block body %}
-<div class="container mt-5">
+<div class="container  ">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="fas fa-chart-line"></i> Inventory Report</h2>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.inventory_management') }}">Inventory Management</a></li>
                     <li class="breadcrumb-item active">Inventory Report</li>
                 </ol>
             </nav>

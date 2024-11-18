@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ current_category }} - {{ current_subcategory }}{% endblock %}
+
+{% block body %}
+            <!-- Main Content -->
+            <div class="col-lg-9 col-md-8 p-4">
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('views.home') }}">Home</a></li>
+                        <li class="breadcrumb-item">{{ current_category }}</li>
+                        <li class="breadcrumb-item active">{{ current_subcategory }}</li>
+                    </ol>
+                </nav>
+
+                <!-- Products Grid -->
+                <div class="row">
+                    {% if products %}
+                        {% for product in products %}
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <img src="{{ url_for('admin.get_image', filename=product.product_picture.split('/')[-1]) }}" 
+                                         class="book-card" 
+                                         alt="{{ product.product_name }}">
+                                    <div class="card-body d-flex flex-column"> <!-- Added d-flex and flex-column -->
+                                        <h5 class="card-title">{{ product.product_name }}</h5>
+                                        <p class="card-text text-muted">{{ product.author }}</p>
+                                        <div class="rating mb-2">
+                                            {% for i in range(product.rating|int) %}
+                                                <i class="fas fa-star text-warning"></i>
+                                            {% endfor %}
+                                            {% for i in range(5 - product.rating|int) %}
+                                                <i class="far fa-star text-warning"></i>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="mb-3"> <!-- Separated price into its own div -->
+                                            <span class="h5 mb-0">${{ "%.2f"|format(product.current_price) }}</span>
+                                        </div>
+                                        {% set cart_item = cart_items.get(product.id) %}
+                                        {% set cart_quantity = cart_item.quantity if cart_item else 0 %}
+                                        
+                                        <a href="/add-to-cart/{{ product.id }}" 
+                                           class="btn btn-primary mt-auto w-100 {% if cart_quantity >= product.in_stock %}disabled{% endif %}"
+                                           {% if cart_quantity >= product.in_stock %}aria-disabled="true" tabindex="-1"{% endif %}>
+                                            <i class="fas fa-shopping-cart me-2"></i>
+                                            {% if cart_quantity >= product.in_stock %}
+                                                Out of stock
+                                            {% else %}
+                                                Add to Cart
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12 text-center py-5">
+                            <h3 class="text-muted">No products found in this category</h3>
+                            <p>Try checking other categories or come back later!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

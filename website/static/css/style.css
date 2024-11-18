@@ -8,7 +8,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding-top: 76px; /* Adjust for navbar height */
+    padding-top: 56px;
     margin: 0;
 }
 
@@ -24,6 +24,138 @@ body {
     transform: translate(50%, -50%);
 }
 
+/* Sidebar Base Styles */
+.sidebar,
+.admin-sidebar {
+    height: calc(100vh - 56px);
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 280px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease-in-out;
+    padding: 1rem;
+}
+
+.sidebar {
+    background-color: white;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.admin-sidebar {
+    background-color: #f8f9fa;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Main Content Styles */
+.main-content {
+    padding-top: 20px;
+    min-height: calc(100vh - 56px);
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Content margin based on user type */
+body:not(.admin-user) .main-content {
+    margin-left: 280px;
+}
+
+body.admin-user .main-content {
+    margin-left: 280px;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 991.98px) {
+    .sidebar,
+    .admin-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.show-sidebar,
+    .admin-sidebar.show-sidebar {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+    }
+    
+    /* Overlay for mobile */
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+    
+    .overlay.show {
+        display: block;
+    }
+}
+
+/* Navigation Items Styles */
+.nav-section {
+    margin-bottom: 1.5rem;
+}
+
+.nav-section-title {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+/* Regular Sidebar Navigation */
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    color: #495057;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.sidebar-nav-item:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.sidebar-nav-item i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Admin Sidebar Navigation */
+.admin-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: #495057;
+    text-decoration: none;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    margin-bottom: 0.25rem;
+}
+
+.admin-nav-item:hover,
+.admin-nav-item.active {
+    background-color: #e9ecef;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.admin-nav-item i {
+    width: 1.5rem;
+    margin-right: 0.75rem;
+}
+
 /* Hero Section */
 .hero {
     background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
@@ -36,7 +168,7 @@ body {
 
 @media (max-width: 768px) {
     .hero {
-        height: 50vh; /* Adjust height for smaller screens */
+        height: 50vh;
     }
 }
 
@@ -55,7 +187,7 @@ body {
 
 .book-card img {
     width: 100%;
-    height: 300px; /* Fixed height for consistency */
+    height: 300px;
     object-fit: cover;
     border-radius: 8px 8px 0 0;
 }
@@ -106,6 +238,21 @@ body {
     color: #ffd700;
 }
 
+/* Categories Section */
+.accordion-button:not(.collapsed) {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0,0,0,.125);
+}
+
+.accordion-body {
+    padding: 0.5rem 1rem;
+}
+
 /* Owl Carousel Customization */
 .owl-carousel .owl-nav button {
     position: absolute;
@@ -127,44 +274,6 @@ body {
     right: -20px;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .navbar .form-inline {
-        width: 100% !important;
-        margin: 1rem 0;
-    }
-    
-    .category-card {
-        margin-bottom: 1rem;
-    }
-
-    /* Mobile Adjustments */
-    .book-card img {
-        height: auto; /* Allow images to adjust for mobile */
-    }
-}
-
-/* Animation Classes */
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.alert {
-    margin-top: 50px; /* Additional spacing from navbar */
-}
-
-/* Owl Carousel Custom Styles */
 .owl-carousel .book-card {
     background: white;
     border-radius: 8px;
@@ -205,4 +314,92 @@ body {
 
 .owl-carousel .owl-dots .owl-dot.active {
     background-color: #818cf8;
+}
+
+/* Alert Styles */
+.alert {
+    margin-top: 20px;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Featured Products Section */
+.featured-products {
+    padding: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.featured-product-card {
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+    transition: transform 0.2s;
+}
+
+.featured-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.featured-product-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .navbar .form-inline {
+        width: 100% !important;
+        margin: 1rem 0;
+    }
+    
+    .category-card {
+        margin-bottom: 1rem;
+    }
+
+    .book-card img {
+        height: auto;
+    }
+    
+    .owl-carousel .owl-nav {
+        display: none;
+    }
+}
+footer {
+    flex-shrink: 0;
+    position: relative;
+    width: 100%;
+    margin-top: auto;
+}
+
+@media (min-width: 992px) {
+    body:not(.admin-user) footer,
+    body.admin-user footer {
+        margin-left: 280px;
+        width: calc(100% - 280px);
+    }
+}
+
+@media (max-width: 991.98px) {
+    footer {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
 }
