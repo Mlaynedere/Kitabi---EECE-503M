@@ -21,6 +21,25 @@ class Customer(db.Model, UserMixin):
     last_login = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='active')
     
+    membership_tier_id = db.Column(db.Integer, db.ForeignKey('membership_tier.id'), default=1)  # Default to Normal
+    points = db.Column(db.Integer, default=0)
+    membership_tier = db.relationship('MembershipTier', backref='customers')
+
+    def add_points(self, amount):
+            """Add points based on purchase amount and tier multiplier"""
+            points_earned = int(amount * self.membership_tier.points_multiplier)
+            self.points += points_earned
+            self.check_tier_upgrade()
+        
+    def check_tier_upgrade(self):
+        """Check and upgrade membership tier based on points"""
+        if self.points >= 10000 and self.membership_tier.name != 'Gold':
+            gold_tier = MembershipTier.query.filter_by(name='Gold').first()
+            self.membership_tier_id = gold_tier.id
+        elif self.points >= 5000 and self.membership_tier.name == 'Normal':
+            premium_tier = MembershipTier.query.filter_by(name='Premium').first()
+            self.membership_tier_id = premium_tier.id
+
     cart_items = db.relationship('Cart', back_populates='customer', lazy=True)
     orders = db.relationship('Order', back_populates='customer', lazy=True)
     activity_logs = db.relationship('ActivityLog', back_populates='user', lazy=True)
@@ -215,3 +234,13 @@ class Return(db.Model):
     product = db.relationship('Product', foreign_keys=[product_link], back_populates='returns')
     admin = db.relationship('Customer', foreign_keys=[processed_by], backref='processed_returns')
     replacement_order = db.relationship('Order', foreign_keys=[replacement_order_id], backref='replacement_for')
+
+class MembershipTier(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)  # Normal, Premium, Gold
+    discount_percentage = db.Column(db.Float, default=0)
+    free_delivery_threshold = db.Column(db.Float, nullable=True)  # NULL for Gold (always free)
+    early_access = db.Column(db.Boolean, default=False)
+    priority_support = db.Column(db.Boolean, default=False)
+    points_multiplier = db.Column(db.Float, default=1.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

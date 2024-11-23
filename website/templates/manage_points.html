@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Customer Points{% endblock %}
+
+{% block body %}
+<div class="container pt-2">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-coins"></i> Manage Points</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.display_customers') }}">Customers</a></li>
+                    <li class="breadcrumb-item active">Manage Points</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Customer Status</h5>
+                </div>
+                <div class="card-body">
+                    <h6>{{ customer.username }}</h6>
+                    <p class="text-muted mb-2">Current Points: <span class="badge bg-primary">{{ customer.points }}</span></p>
+                    <p class="text-muted">Membership Tier: 
+                        <span class="badge bg-{{ 'warning' if customer.membership_tier.name == 'Gold' else 'info' if customer.membership_tier.name == 'Premium' else 'secondary' }}">
+                            {{ customer.membership_tier.name }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Award Points</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        <div class="row mb-3">
+                            <div class="col">
+                                <div class="form-group">
+                                    {{ form.points.label(class="form-label") }}
+                                    {{ form.points(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col">
+                                <div class="form-group">
+                                    {{ form.reason.label(class="form-label") }}
+                                    {{ form.reason(class="form-control") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <a href="{{ url_for('admin.display_customers') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back
+                                </a>
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

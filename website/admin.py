@@ -1,10 +1,13 @@
 from flask import Blueprint, jsonify, render_template, flash, send_from_directory, redirect, request, url_for
+from flask_limiter import Limiter
 from flask_login import login_required, current_user
+from flask_limiter.util import get_remote_address
+from website.security import safe_query
 from .decorators import admin_required, check_permission
-from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm
+from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm, MembershipTierForm, AwardPointsForm
 from werkzeug.utils import secure_filename
-from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return
-from . import db
+from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return, MembershipTier
+from . import db, limiter
 from sqlalchemy.orm import joinedload
 from datetime import datetime
 import os
@@ -132,14 +135,12 @@ def add_shop_items():
                 flash('An error occurred while adding the product. Please try again.', 'error')
                 
         elif request.method == 'POST':
-            # If form validation failed, log the errors
             log_activity(
                 action='failed_product_creation',
                 entity_type='product',
                 details={'form_errors': form.errors}
             )
             
-        # GET request or form validation failed
         return render_template('add_shop_items.html', 
                              form=form, 
                              categories=categories, 
@@ -602,11 +603,32 @@ def update_inventory(product_id):
         )
     return render_template('404.html')
 
+
 @admin.route('/get-subcategories/<int:category_id>')
 @login_required
+@limiter.limit("30 per minute", key_func=get_remote_address)
 def get_subcategories(category_id):
-    subcategories = SubCategory.query.filter_by(category_id=category_id).all()
-    return jsonify({'subcategories': [{'id': subcategory.id, 'name': subcategory.name} for subcategory in subcategories]})
+    try:
+        # Validate input
+        if not isinstance(category_id, int) or category_id < 1:
+            return jsonify({'error': 'Invalid category ID'}), 400
+
+        # Use safe query
+        subcategories = safe_query(
+            "SELECT id, name FROM sub_category WHERE category_id = :cat_id",
+            {'cat_id': category_id}
+        ).fetchall()
+
+        return jsonify({
+            'subcategories': [
+                {'id': subcat.id, 'name': subcat.name} 
+                for subcat in subcategories
+            ]
+        })
+    except Exception as e:
+        log_activity('api_error', details=str(e))
+        return jsonify({'error': 'Internal server error'}), 500
+    
 @admin.route('/roles', methods=['GET'])
 @login_required
 @admin_required
@@ -849,3 +871,127 @@ def return_details(return_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+
+@admin.route('/membership-tiers', methods=['GET'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def membership_tiers():
+    tiers = MembershipTier.query.all()
+    return render_template('membership_tiers.html', tiers=tiers)
+
+@admin.route('/membership-tiers/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def add_membership_tier():
+    try:
+        print("Accessing add membership tier route")  # Debug print
+        form = MembershipTierForm()
+        
+        if form.validate_on_submit():
+            try:
+                tier = MembershipTier(
+                    name=form.name.data,
+                    discount_percentage=form.discount_percentage.data,
+                    free_delivery_threshold=form.free_delivery_threshold.data,
+                    early_access=form.early_access.data,
+                    priority_support=form.priority_support.data,
+                    points_multiplier=form.points_multiplier.data
+                )
+                db.session.add(tier)
+                db.session.commit()
+                
+                log_activity(
+                    action='create_membership_tier',
+                    entity_type='membership_tier',
+                    entity_id=tier.id,
+                    details={'tier_name': tier.name}
+                )
+                
+                flash('Membership tier created successfully', 'success')
+                return redirect(url_for('admin.membership_tiers'))
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error creating tier: {e}")
+                flash('Error creating membership tier', 'error')
+        
+        elif request.method == 'POST':
+            print(f"Form validation errors: {form.errors}")  # Debug print
+            
+        return render_template('add_membership_tier.html', form=form)
+        
+    except Exception as e:
+        print(f"Route error: {e}")  # Debug print
+        flash('An error occurred', 'error')
+        return redirect(url_for('admin.membership_tiers'))
+    
+@admin.route('/membership-tiers/edit/<int:tier_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def edit_membership_tier(tier_id):
+    tier = MembershipTier.query.get_or_404(tier_id)
+    form = MembershipTierForm(obj=tier)
+    
+    if form.validate_on_submit():
+        tier.name = form.name.data
+        tier.discount_percentage = form.discount_percentage.data
+        tier.free_delivery_threshold = form.free_delivery_threshold.data
+        tier.early_access = form.early_access.data
+        tier.priority_support = form.priority_support.data
+        tier.points_multiplier = form.points_multiplier.data
+        
+        try:
+            db.session.commit()
+            log_activity(
+                action='update_membership_tier',
+                entity_type='membership_tier',
+                entity_id=tier.id,
+                details={'tier_name': tier.name}
+            )
+            flash('Membership tier updated successfully', 'success')
+            return redirect(url_for('admin.membership_tiers'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error updating membership tier', 'error')
+            print(f"Error updating tier: {e}")
+    
+    return render_template('edit_membership_tier.html', form=form, tier=tier)
+
+@admin.route('/customers/points/<int:customer_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+def manage_customer_points(customer_id):
+    customer = Customer.query.get_or_404(customer_id)
+    form = AwardPointsForm()
+    
+    if form.validate_on_submit():
+        previous_points = customer.points
+        customer.points += form.points.data
+        customer.check_tier_upgrade()
+        
+        try:
+            db.session.commit()
+            log_activity(
+                action='award_points',
+                entity_type='customer',
+                entity_id=customer.id,
+                details={
+                    'points_awarded': form.points.data,
+                    'reason': form.reason.data,
+                    'previous_points': previous_points,
+                    'new_points': customer.points
+                }
+            )
+            flash(f'Successfully awarded {form.points.data} points to {customer.username}', 'success')
+            return redirect(url_for('admin.display_customers'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error awarding points', 'error')
+            print(f"Error awarding points: {e}")
+    
+    return render_template('manage_points.html', form=form, customer=customer)

@@ -8,17 +8,8 @@
 
         <!-- Main Content Area -->
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-                <h1 class="h2">Dashboard Overview</h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <div class="btn-group me-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-                        <i class="fas fa-calendar"></i>
-                        This week
-                    </button>
-                </div>
+                <h2 class="h2">Dashboard Overview</h2>
+                
             </div>
 
             <!-- Stats Cards -->
@@ -78,7 +69,21 @@
                         </div>
                     </div>
                 </div>
+                <!-- Add this to your stats cards row -->
+<div class="col-md-3">
+    <div class="card text-white bg-primary">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="card-title mb-0">Membership Tiers</h6>
+                    <h2 class="mt-2 mb-0">{{ membership_tiers_count|default(0) }}</h2>
+                </div>
+                <i class="fas fa-crown fa-2x opacity-50"></i>
             </div>
+        </div>
+    </div>
+</div>
+            
             <div class="col-md-3">
                 <div class="card text-white bg-secondary">
                     <div class="card-body">
@@ -92,7 +97,7 @@
                     </div>
                 </div>
             </div>
-
+        </div>
             <!-- Quick Actions & Activity -->
             <div class="row g-4 mb-4">
                 <!-- Quick Actions -->
@@ -103,19 +108,15 @@
                         </div>
                         <div class="card-body">
                             <div class="row g-2">
+                                <!-- Add these inside your Quick Actions card, in the row g-2 div -->
                                 <div class="col-6">
-                                    <a href="{{ url_for('admin.add_shop_items') }}" class="btn btn-primary w-100">
-                                        <i class="fas fa-plus me-2"></i>Add Product
+                                    <a href="{{ url_for('admin.membership_tiers') }}" class="btn btn-primary w-100">
+                                        <i class="fas fa-crown me-2"></i>Manage Tiers
                                     </a>
                                 </div>
                                 <div class="col-6">
-                                    <a href="{{ url_for('admin.inventory_management') }}" class="btn btn-info w-100">
-                                        <i class="fas fa-boxes me-2"></i>Update Stock
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a href="{{ url_for('admin.order_view') }}" class="btn btn-success w-100">
-                                        <i class="fas fa-clipboard-list me-2"></i>View Orders
+                                    <a href="{{ url_for('admin.add_membership_tier') }}" class="btn btn-info w-100">
+                                        <i class="fas fa-plus-circle me-2"></i>Add Tier
                                     </a>
                                 </div>
                                 <div class="col-6">
@@ -133,6 +134,7 @@
                                         <i class="fas fa-clipboard-list me-2"></i>View Orders
                                     </a>
                                 </div>
+
                                 <div class="col-6">
                                     <a href="{{ url_for('admin.returns_management') }}" class="btn btn-warning w-100">
                                         <i class="fas fa-undo me-2"></i>Manage Returns

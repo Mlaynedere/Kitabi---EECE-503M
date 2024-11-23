@@ -1,5 +1,9 @@
 from flask import Blueprint, render_template, flash, redirect, request, jsonify, url_for
+from flask_limiter import Limiter
 from flask_login import login_required, current_user
+from . import limiter
+from flask_limiter.util import get_remote_address
+from .admin import log_activity
 from .models import Customer, Product, Order, Return, Cart, Category, SubCategory
 from . import db
 from intasend import APIService
@@ -160,8 +164,37 @@ def remove_cart():
 
         return jsonify(data)
 
+def secure_payment_call(phone_number, email, amount, narrative):
+    """Secure payment API call with retry and timeout"""
+    import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=[500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('https://', adapter)
+    
+    try:
+        service = APIService(token=API_TOKEN, publishable_key=API_PUBLISHABLE_KEY, test=True)
+        response = service.collect.mpesa_stk_push(
+            phone_number=phone_number,
+            email=email,
+            amount=amount,
+            narrative=narrative
+        )
+        return response
+    except Exception as e:
+        log_activity('payment_error', details=str(e))
+        raise
+
 @views.route('/place-order')
 @login_required
+@limiter.limit("10 per minute") 
 def place_order():
     customer_cart = Cart.query.filter_by(customer_link=current_user.id)
     if customer_cart:
@@ -169,10 +202,39 @@ def place_order():
             total = 0
             for item in customer_cart:
                 total += item.product.current_price * item.quantity
+            
+            if current_user.membership_tier:
+                discount = total * (current_user.membership_tier.discount_percentage / 100)
+                total -= discount
 
+             # Check for free delivery
+            delivery_fee = 3  # Default delivery fee
+            if current_user.membership_tier:
+                if current_user.membership_tier.free_delivery_threshold is None:  # Gold tier
+                    delivery_fee = 0
+                elif total >= current_user.membership_tier.free_delivery_threshold:
+                    delivery_fee = 0
+
+            final_total = total + delivery_fee
+
+
+            # Process payment
             service = APIService(token=API_TOKEN, publishable_key=API_PUBLISHABLE_KEY, test=True)
-            create_order_response = service.collect.mpesa_stk_push(phone_number='25470174294 ', email=current_user.email,
-                                                                   amount=total + 3, narrative='Purchase of goods')
+            create_order_response = secure_payment_call(
+                phone_number='25470174294',
+                email=current_user.email,
+                amount=final_total,
+                narrative='Purchase of goods'
+            )
+            # If payment successful, process order and award points
+            if create_order_response['invoice']['state'].capitalize() == 'Completed':
+                # Award points based on pre-discount total and tier multiplier
+                points_earned = int(total * current_user.membership_tier.points_multiplier)
+                current_user.points += points_earned
+                
+                # Check for tier upgrade
+                current_user.check_tier_upgrade()
+
 
             for item in customer_cart:
                 new_order = Order()
@@ -192,19 +254,35 @@ def place_order():
 
                 db.session.delete(item)
 
+# Log the points award
+                log_activity(
+                    action='award_order_points',
+                    entity_type='customer',
+                    entity_id=current_user.id,
+                    details={
+                        'points_earned': points_earned,
+                        'order_total': total,
+                        'tier_multiplier': current_user.membership_tier.points_multiplier
+                    }
+                )
+
                 db.session.commit()
+                flash(f'Order Placed Successfully! You earned {points_earned} points!')
+                return redirect('/orders')
 
-            flash('Order Placed Successfully')
+            else:
+                flash('Payment processing failed', 'error')
+                return redirect('/cart')
 
-            return redirect('/orders')
         except Exception as e:
-            print(e)
-            flash('Order not placed')
+            print(f"Error processing order: {e}")
+            db.session.rollback()
+            flash('Order not placed', 'error')
             return redirect('/')
     else:
         flash('Your cart is Empty')
         return redirect('/')
-
+    
 @views.route('/orders')
 @login_required
 def order():

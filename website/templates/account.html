@@ -1,41 +1,208 @@
 {% extends 'base.html' %}
 
-{% block title %} Profile {% endblock %}
+{% block title %}Profile{% endblock %}
 
 {% block body %}
-    <!-- Profile Section -->
-    <section id="profile" class="py-5">
-         <div class="container pt-2">
-            <div class="row">
-                <div class="col-lg-4">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <h4 class="card-title">{{ current_user.username }}</h4>
-                            <p class="card-text">{{ current_user.email }}</p>
+<section id="profile" class="py-5">
+    <div class="container pt-2">
+        <div class="row">
+            <!-- Profile Card -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        {% if not current_user.is_admin %}
+                            {% if current_user.membership_tier %}
+                                {% if current_user.membership_tier.name == 'Gold' %}
+                                    <i class="fas fa-crown fa-3x text-warning"></i>
+                                {% elif current_user.membership_tier.name == 'Premium' %}
+                                    <i class="fas fa-star fa-3x text-info"></i>
+                                {% else %}
+                                    <i class="fas fa-user fa-3x text-secondary"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-user fa-3x text-secondary"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-user-shield fa-3x text-primary"></i>
+                        {% endif %}
+                    </div>
+                    <h4 class="card-title">{{ current_user.username }}</h4>
+                    <p class="card-text text-muted">{{ current_user.email }}</p>
+                    {% if not current_user.is_admin %}
+                        {% if current_user.membership_tier %}
+                            <div class="badge bg-{{ 'warning' if current_user.membership_tier.name == 'Gold' 
+                                                   else 'info' if current_user.membership_tier.name == 'Premium' 
+                                                   else 'secondary' }} mb-2">
+                                {{ current_user.membership_tier.name }} Member
+                            </div>
+                        {% else %}
+                            <div class="badge bg-secondary mb-2">Basic Member</div>
+                        {% endif %}
+                    {% else %}
+                        <div class="badge bg-primary mb-2">Administrator</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if not current_user.is_admin and current_user.membership_tier %}
+            <!-- Membership Progress Card - Only shown for non-admins -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-line"></i> Membership Progress
+                            </h5>
                         </div>
+                        <div class="card-body">
+                            <div class="text-center mb-3">
+                                <h3 class="mb-0">{{ current_user.points }}</h3>
+                                <small class="text-muted">Total Points</small>
+                            </div>
+                            {% if current_user.membership_tier.name == 'Normal' %}
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-info" 
+                                         role="progressbar" 
+                                         data-points="{{ current_user.points }}"
+                                         aria-valuenow="{{ current_user.points }}"
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5000">
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ 5000 - current_user.points }} points until Premium</small>
+                            {% elif current_user.membership_tier.name == 'Premium' %}
+                                <div class="progress mb-2">
+                                    <div class="progress-bar bg-warning" 
+                                         role="progressbar" 
+                                         data-points="{{ current_user.points }}"
+                                         data-is-premium="true"
+                                         aria-valuenow="{{ current_user.points - 5000 }}"
+                                         aria-valuemin="0" 
+                                         aria-valuemax="5000">
+                                    </div>
+                                </div>
+                                <small class="text-muted">{{ 10000 - current_user.points }} points until Gold</small>
+                            {% else %}
+                                <div class="alert alert-success mb-0">
+                                    <i class="fas fa-check-circle"></i> You've reached Gold status!
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Account Information -->
+            <div class="col-lg-8">
+                <!-- Personal Info Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user-circle"></i> Account Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <strong>Full Name:</strong> {{ current_user.full_name }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Email:</strong> {{ current_user.email }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Member Since:</strong> {{ current_user.date_joined.strftime('%B %d, %Y') }}
+                            </li>
+                        </ul>
                     </div>
                 </div>
-                
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Account Information</h5>
-                            <ul class="list-group">
-                                <li class="list-group-item">
-                                    <strong>Full Name:</strong> {{ current_user.full_name }}
-                                </li>
-                                <li class="list-group-item">
-                                    <strong>Email:</strong> {{ current_user.email }}
-                                </li>
-
-                            </ul>
-                            <hr>
-                            <a href="/change-password/{{current_user.id}}" class="btn btn-warning btn-block">Change Password</a>
-                            <a href="{{ url_for('auth.log_out') }}" class="btn btn-danger btn-block">Log Out</a>
-                        </div>
+                {% if not current_user.is_admin %}
+                <!-- Membership Benefits Card - Only shown for non-admins -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-gift"></i> Your Member Benefits
+                        </h5>
                     </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% if current_user.membership_tier %}
+                                <li class="list-group-item">
+                                    <i class="fas fa-percentage text-success"></i>
+                                    <strong>Discount Rate:</strong> 
+                                    {{ current_user.membership_tier.discount_percentage or 0 }}% off eligible items
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-truck text-success"></i>
+                                    <strong>Delivery:</strong>
+                                    {% if current_user.membership_tier.free_delivery_threshold is none %}
+                                        Free delivery on all orders
+                                    {% elif current_user.membership_tier.free_delivery_threshold > 0 %}
+                                        Free delivery on orders over ${{ "%.2f"|format(current_user.membership_tier.free_delivery_threshold) }}
+                                    {% else %}
+                                        Standard delivery rates apply
+                                    {% endif %}
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="fas fa-coins text-success"></i>
+                                    <strong>Points Multiplier:</strong>
+                                    {{ current_user.membership_tier.points_multiplier or 1 }}x points on all purchases
+                                </li>
+                                {% if current_user.membership_tier.early_access %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-clock text-success"></i>
+                                        <strong>Early Access:</strong> 
+                                        Early access to sales and new releases
+                                    </li>
+                                {% endif %}
+                                {% if current_user.membership_tier.priority_support %}
+                                    <li class="list-group-item">
+                                        <i class="fas fa-headset text-success"></i>
+                                        <strong>Support:</strong>
+                                        Priority customer support
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="list-group-item text-center">
+                                    <i class="fas fa-exclamation-circle text-warning"></i>
+                                    No membership tier assigned. Please contact support.
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2">
+                    <a href="/change-password/{{current_user.id}}" class="btn btn-warning">
+                        <i class="fas fa-key"></i> Change Password
+                    </a>
+                    <a href="{{ url_for('auth.log_out') }}" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt"></i> Log Out
+                    </a>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if not current_user.is_admin %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update progress bars
+    document.querySelectorAll('.progress-bar').forEach(function(bar) {
+        const points = parseInt(bar.dataset.points);
+        const isPremium = bar.dataset.isPremium === 'true';
+        
+        if (isPremium) {
+            const progress = ((points - 5000) / 5000) * 100;
+            bar.style.width = `${Math.min(Math.max(progress, 0), 100)}%`;
+        } else {
+            const progress = (points / 5000) * 100;
+            bar.style.width = `${Math.min(Math.max(progress, 0), 100)}%`;
+        }
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

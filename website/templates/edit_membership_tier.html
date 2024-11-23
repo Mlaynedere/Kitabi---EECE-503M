@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Membership Tier{% endblock %}
+
+{% block body %}
+<div class="container pt-2">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-edit"></i> Edit Membership Tier</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.membership_tiers') }}">Membership Tiers</a></li>
+                    <li class="breadcrumb-item active">Edit {{ tier.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-{{ 'crown' if tier.name == 'Gold' else 'star' if tier.name == 'Premium' else 'user' }}"></i>
+                Edit {{ tier.name }} Tier
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control") }}
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.discount_percentage.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.discount_percentage(class="form-control") }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.discount_percentage.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.discount_percentage.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.free_delivery_threshold.label(class="form-label") }}
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.free_delivery_threshold(class="form-control") }}
+                            </div>
+                            <small class="text-muted">Leave empty for always free delivery</small>
+                            {% if form.free_delivery_threshold.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.free_delivery_threshold.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {{ form.points_multiplier.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.points_multiplier(class="form-control") }}
+                                <span class="input-group-text">×</span>
+                            </div>
+                            {% if form.points_multiplier.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.points_multiplier.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Additional Benefits</h6>
+                                <div class="form-check mb-2">
+                                    {{ form.early_access(class="form-check-input") }}
+                                    {{ form.early_access.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">
+                                        Members get early access to sales and new releases
+                                    </small>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.priority_support(class="form-check-input") }}
+                                    {{ form.priority_support.label(class="form-check-label") }}
+                                    <small class="form-text text-muted d-block">
+                                        Members receive priority customer support
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Current Statistics</h6>
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-users"></i> Members: 
+                                    <span class="badge bg-primary">{{ tier.customers|length }}</span>
+                                </p>
+                                <p class="card-text mb-0">
+                                    <i class="fas fa-calendar"></i> Created: 
+                                    <span class="text-muted">{{ tier.created_at.strftime('%Y-%m-%d') }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <a href="{{ url_for('admin.membership_tiers') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Tiers
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

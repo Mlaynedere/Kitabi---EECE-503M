@@ -1,24 +1,35 @@
 from flask import Blueprint, render_template, flash, redirect, request, url_for
+from flask_limiter import Limiter
 from .forms import LoginForm, SignUpForm, PasswordChangeForm
-from .models import Customer
-from . import db
+from .models import Customer, MembershipTier
+from . import db, limiter
 from flask_login import login_user, login_required, logout_user, current_user
 from .utils import get_categories_dict
+from .security import password_meets_requirements, sanitize_input
+from flask_limiter.util import get_remote_address
+
 auth = Blueprint('auth', __name__)
 
-
 @auth.route('/sign-up', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")  # Add rate limiting
 def sign_up():
     if current_user.is_authenticated:
         return redirect(url_for('views.home'))
 
     form = SignUpForm()
     if form.validate_on_submit():
-        full_name = form.full_name.data
-        email = form.email.data
-        username = form.username.data
+        # Sanitize inputs
+        full_name = sanitize_input(form.full_name.data)
+        email = sanitize_input(form.email.data)
+        username = sanitize_input(form.username.data)
         password1 = form.password1.data
         password2 = form.password2.data
+
+        # Check password strength
+        is_valid, msg = password_meets_requirements(password1)
+        if not is_valid:
+            flash(msg, 'error')
+            return redirect(url_for('auth.sign_up'))
 
         existing_user = Customer.query.filter_by(email=email).first()
         if existing_user:
@@ -31,52 +42,49 @@ def sign_up():
             return redirect(url_for('auth.sign_up'))
         
         if password1 == password2:
+            # Get the default "Normal" tier
+            normal_tier = MembershipTier.query.filter_by(name='Normal').first()
+            
+            # If Normal tier doesn't exist, create it
+            if not normal_tier:
+                normal_tier = MembershipTier(
+                    name='Normal',
+                    discount_percentage=0,
+                    free_delivery_threshold=None,
+                    early_access=False,
+                    priority_support=False,
+                    points_multiplier=1.0
+                )
+                db.session.add(normal_tier)
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    print(f"Error creating Normal tier: {e}")
+                    db.session.rollback()
+                    flash('Error during signup. Please try again.', 'error')
+                    return redirect(url_for('auth.sign_up'))
+
+            # Create new customer with the Normal tier
             new_customer = Customer()
             new_customer.full_name = full_name
             new_customer.email = email
             new_customer.username = username
             new_customer.password = password2
+            new_customer.points = 0
+            new_customer.membership_tier_id = normal_tier.id
+            
             try:
                 db.session.add(new_customer)
                 db.session.commit()
                 flash('Account Created Successfully')
                 return redirect(url_for('auth.login'))
             except Exception as e:
+                db.session.rollback()
+                print(f"Error creating account: {e}")
                 flash('There was an error creating your account. Please try again later.', 'error')
                 return redirect(url_for('auth.sign_up'))
-        
+    
     return render_template('signup.html', form=form)
-
-    # form = SignUpForm()
-    # if form.validate_on_submit():
-    #     email = form.email.data
-    #     username = form.username.data
-    #     password1 = form.password1.data
-    #     password2 = form.password2.data
-
-    #     if password1 == password2:
-    #         new_customer = Customer()
-    #         new_customer.email = email
-    #         new_customer.username = username
-    #         new_customer.password = password2
-            
-    #         try:
-    #             db.session.add(new_customer)
-    #             db.session.commit()
-    #             flash('Account Created Successfully' + '\n' + 'You can now login!')
-    #             return redirect('/login')
-    #         except Exception as e:
-    #             print(e)
-    #             flash('Email already exists!')
-
-    #         form.email.data = ''
-    #         form.username.data = ''
-    #         form.password1.data = ''
-    #         form.password2.data = ''
-            
-    # return render_template('signup.html', form=form)
-
-
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:

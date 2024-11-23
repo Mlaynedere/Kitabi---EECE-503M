@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Membership Tiers{% endblock %}
+
+{% block body %}
+<div class="container pt-2">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-crown"></i> Membership Tiers</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Membership Tiers</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ url_for('admin.add_membership_tier') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Tier
+        </a>
+        <a href="{{ url_for('admin.display_customers') }}" class="btn btn-secondary">
+            <i class="fas fa-users"></i> Manage Customers
+        </a>
+    </div>
+
+    <div class="row">
+        {% for tier in tiers %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0 d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="fas {% if tier.name == 'Gold' %}fa-crown text-warning{% elif tier.name == 'Premium' %}fa-star text-info{% else %}fa-user text-secondary{% endif %} me-2"></i>
+                            {{ tier.name }}
+                        </span>
+                        <span class="badge bg-primary">{{ tier.customers|length }} members</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-percentage text-success me-2"></i>{{ tier.discount_percentage }}% discount</li>
+                        <li class="mb-2"><i class="fas fa-coins text-success me-2"></i>{{ tier.points_multiplier }}x points</li>
+                        <li class="mb-2">
+                            <i class="fas fa-truck text-success me-2"></i>
+                            {% if tier.free_delivery_threshold is none %}
+                                Always free delivery
+                            {% elif tier.free_delivery_threshold > 0 %}
+                                Free delivery over ${{ "%.2f"|format(tier.free_delivery_threshold) }}
+                            {% else %}
+                                Standard delivery rates
+                            {% endif %}
+                        </li>
+                        {% if tier.early_access %}
+                        <li class="mb-2"><i class="fas fa-clock text-success me-2"></i>Early access to sales</li>
+                        {% endif %}
+                        {% if tier.priority_support %}
+                        <li class="mb-2"><i class="fas fa-headset text-success me-2"></i>Priority support</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100">
+                        <a href="{{ url_for('admin.edit_membership_tier', tier_id=tier.id) }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit Tier
+                        </a>
+                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#memberList{{ tier.id }}">
+                            <i class="fas fa-users"></i> View Members
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members Modal -->
+        <div class="modal fade" id="memberList{{ tier.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ tier.name }} Members</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {% if tier.customers %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Points</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for customer in tier.customers %}
+                                    <tr>
+                                        <td>{{ customer.username }}</td>
+                                        <td>{{ customer.points }}</td>
+                                        <td>
+                                            <a href="{{ url_for('admin.manage_customer_points', customer_id=customer.id) }}" 
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-coins"></i> Manage Points
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No members in this tier</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -174,3 +174,26 @@ class ProcessReturnForm(FlaskForm):
         render_kw={"placeholder": "Add any internal notes about this return..."}
     )
     submit = SubmitField('Process Return')
+
+
+class MembershipTierForm(FlaskForm):
+    name = StringField('Tier Name', validators=[DataRequired()])
+    discount_percentage = FloatField('Discount Percentage', 
+        validators=[Optional(), NumberRange(min=0, max=100)],
+        default=0)
+    free_delivery_threshold = FloatField('Free Delivery Threshold',
+        validators=[Optional(), NumberRange(min=0)],
+        default=0)
+    early_access = BooleanField('Early Access to Sales', default=False)
+    priority_support = BooleanField('Priority Support', default=False)
+    points_multiplier = FloatField('Points Multiplier', 
+        validators=[DataRequired(), NumberRange(min=1)],
+        default=1.0)
+    submit = SubmitField('Save Tier')
+
+class AwardPointsForm(FlaskForm):
+    points = IntegerField('Points to Award', 
+        validators=[DataRequired(), NumberRange(min=1)],
+        default=0)
+    reason = StringField('Reason', validators=[DataRequired()])
+    submit = SubmitField('Award Points')

@@ -5,15 +5,22 @@ from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from flask_migrate import Migrate
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+from datetime import datetime, timedelta
 import os
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 migrate = Migrate()
+csrf = CSRFProtect()
 DB_NAME = 'database.sqlite3'
-
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 def create_initial_roles():
     from .models import Role
     
@@ -132,9 +139,22 @@ def seed_database():
 
 def create_app():
     app = Flask(__name__)
+    from .models import Customer
+    from .security import safe_query
+    from .views import views
+    from .admin import admin
+    from .auth import auth
+    
     app.config['SECRET_KEY'] = 'test12345'
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
+    )
 
     @app.template_filter('from_json')
     def from_json(value):
@@ -167,23 +187,18 @@ def create_app():
             return f'{days} day{"s" if days != 1 else ""} ago'
         else:
             return dt.strftime('%Y-%m-%d %H:%M')
-        
+    
+    limiter.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
-    
+    csrf.init_app(app)
+
     @login_manager.user_loader
     def load_user(id):
-        from .models import Customer
         return Customer.query.get(int(id))
-    
-    # Register blueprints
-    from .views import views
-    from .auth import auth
-    from .admin import admin
-    
+
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(admin, url_prefix='/')

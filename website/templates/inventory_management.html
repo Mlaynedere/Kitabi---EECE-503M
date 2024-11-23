@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 
-{% block title %}Inventory Management{% endblock %}
+{% block title %}Manage Inventory{% endblock %}
 
 {% block body %}
  <div class="container pt-2">
     <div class="row mb-4">
         <div class="col">
-            <h2><i class="fas fa-boxes"></i> Inventory Management</h2>
+            <h2><i class="fas fa-boxes"></i> Manage Inventory</h2>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Inventory Management</li>
+                    <li class="breadcrumb-item active">Manage Inventory</li>
                 </ol>
             </nav>
         </div>
@@ -74,7 +74,6 @@
                                 <th>Current Stock</th>
                                 <th>Low Stock Alert</th>
                                 <th>Last Updated</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -85,17 +84,7 @@
                                 <td>{{ product.in_stock }}</td>
                                 <td>{{ product.low_stock_threshold }}</td>
                                 <td>{{ product.last_stock_update.strftime('%Y-%m-%d %H:%M') if product.last_stock_update else 'Never' }}</td>
-                                <td>
-                                    <div class="btn-group">
-                                        <a href="{{ url_for('admin.update_inventory', product_id=product.id) }}" 
-                                           class="btn btn-sm btn-primary">
-                                            <i class="fas fa-edit"></i> Update
-                                        </a>
-                                        <a href="{{ url_for('admin.inventory_report') }}?product_id={{ product.id }}" 
-                                           class="btn btn-sm btn-info">
-                                            <i class="fas fa-chart-bar"></i> History
-                                        </a>
-                                    </div>
+
                                 </td>
                             </tr>
                             {% endfor %}
@@ -115,9 +104,14 @@
     <!-- Download Report Button -->
     <div class="row mt-4 mb-5">
         <div class="col">
-            <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-success">
-                <i class="fas fa-download"></i> Generate Inventory Report
+            <a href="{{ url_for('admin.admin_page') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
+            <a href="{{ url_for('admin.inventory_report') }}" class="btn btn-success">
+                <i class="fas"></i> Generate Inventory Report
+            </a>
+
+
         </div>
     </div>
 </div>
