@@ -17,3 +17,5 @@ Flask-Limiter==3.5.0
 bleach==6.1.0
 python-magic==0.4.27
 validators==0.22.0
+intasend-python==1.1.2
+flask-migrate==4.0.7
