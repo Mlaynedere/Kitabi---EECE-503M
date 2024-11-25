@@ -217,7 +217,7 @@ input:focus {
     display: none;
     flex: 1;
     background: linear-gradient(rgba(79, 70, 229, 0.9), rgba(79, 70, 229, 0.9)),
-                url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3') center/cover;
+                url('/static/images/library.jpeg') center/cover;
     padding: 2rem;
     color: white;
     display: flex;
@@ -486,7 +486,7 @@ input:focus {
     display: none;
     flex: 1;
     background: linear-gradient(rgba(79, 70, 229, 0.9), rgba(79, 70, 229, 0.9)),
-                url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3') center/cover;
+                url('/static/images/library.jpeg') center/cover;
     padding: 2rem;
     color: white;
     display: flex;
