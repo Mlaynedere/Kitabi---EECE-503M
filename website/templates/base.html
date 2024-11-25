@@ -204,7 +204,9 @@
         {% if not current_user.is_authenticated or not current_user.is_admin %}
             <!-- Search Bar -->
             <form method="POST" enctype="multipart/form-data" class="d-none d-md-flex mx-auto" style="width: 40%;">
-                {{ form.hidden_tag() }}
+                {% if form %}
+                    {{ form.hidden_tag() }}
+                {% endif %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search for books...">
