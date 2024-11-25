@@ -14,8 +14,9 @@
                     <h2>Welcome Back</h2>
                     <p class="subtitle">Please sign in to your account</p>
                     
-                    <form action="/login" method="POST">
-                        {{ form.hidden_tag() }} 
+                    <form method="POST" enctype="multipart/form-data" action="/login" method="POST">
+                        {{ form.hidden_tag() }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> 
                         <div class="form-group">
                             <div class="input-group">
                                 <i class="fas fa-envelope"></i>

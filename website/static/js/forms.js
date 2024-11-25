@@ -17,12 +17,24 @@ document.addEventListener('DOMContentLoaded', function() {
         signupForm.classList.add('hidden');
         signinForm.classList.remove('hidden');
     });
-
+    
     // Form validation
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            if (csrfToken) {
+                let csrfInput = form.querySelector('input[name="csrf_token"]');
+                if (!csrfInput) {
+                    csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = csrfToken;
+                    form.appendChild(csrfInput);
+                }
+            }
             
             // Password validation for signup form
             if (form.querySelector('[name="confirm_password"]')) {

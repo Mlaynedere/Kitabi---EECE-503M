@@ -25,8 +25,9 @@
             </h5>
         </div>
         <div class="card-body">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data" method="POST">
                 {{ form.hidden_tag() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <div class="row mb-3">
                     <div class="col-md-6">

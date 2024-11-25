@@ -19,8 +19,9 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="POST">
-                {{ form.csrf_token }}
+            <form method="POST" enctype="multipart/form-data" method="POST">
+                {{ form.hidden_tag() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <div class="mb-3">
                     <label for="{{ form.name.id }}" class="form-label">Role Name</label>

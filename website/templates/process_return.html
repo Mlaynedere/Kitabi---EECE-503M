@@ -71,8 +71,9 @@
                     <h5 class="card-title mb-0">Process Return</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
-                        {{ form.csrf_token }}
+                    <form method="POST" enctype="multipart/form-data" method="POST">
+                        {{ form.hidden_tag() }}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div class="mb-3">
                             {{ form.status.label(class="form-label") }}

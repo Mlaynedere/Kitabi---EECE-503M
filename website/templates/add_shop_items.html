@@ -54,8 +54,9 @@
         <div class="col-md-8">
             <div class="bg-white p-4 rounded-lg shadow-sm">
                 <h3 class="text-center mb-4">Add a Single Item</h3>
-                <form action="" method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" action="">
                     {{ form.hidden_tag() }}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <div class="mb-3">
                         <label class="form-label">{{ form.product_name.label }}</label>

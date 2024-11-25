@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/owl.carousel.min.css') }}">
@@ -202,7 +203,9 @@
     
         {% if not current_user.is_authenticated or not current_user.is_admin %}
             <!-- Search Bar -->
-            <form class="d-none d-md-flex mx-auto" style="width: 40%;">
+            <form method="POST" enctype="multipart/form-data" class="d-none d-md-flex mx-auto" style="width: 40%;">
+                {{ form.hidden_tag() }}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search for books...">
                     <button class="btn btn-primary" type="submit">
@@ -431,7 +434,7 @@
             </div>
             <div class="col-md-4">
                 <h5>Newsletter</h5>
-                <form>
+                <form method="POST" enctype="multipart/form-data">
                     <div class="input-group">
                         <input type="email" class="form-control" placeholder="Enter your email">
                         <button class="btn btn-primary" type="submit">Subscribe</button>

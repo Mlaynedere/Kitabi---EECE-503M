@@ -51,8 +51,9 @@
 "Another Book","Second Author",4.0,19.99,50,1,2,true,10,https://example.com/book.jpg</code></pre>
                 </div>
 
-                <form action="" method="POST" enctype="multipart/form-data" class="mt-4">
+                <form method="POST" enctype="multipart/form-data" action="" method="POST" enctype="multipart/form-data" class="mt-4">
                     {{ form.hidden_tag() }}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
                     <div class="mb-3">
                         <label for="csv_file" class="form-label">Upload CSV File</label>

@@ -6,6 +6,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission
     if (form) {
         form.addEventListener('submit', function(e) {
+
+            let csrfTokenField = form.querySelector('input[name="csrf_token"]');
+            if (!csrfTokenField) {
+                const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
+                if (csrfMetaTag) {
+                    csrfTokenField = document.createElement('input');
+                    csrfTokenField.type = 'hidden';
+                    csrfTokenField.name = 'csrf_token';
+                    csrfTokenField.value = csrfMetaTag.getAttribute('content');
+                    form.appendChild(csrfTokenField);
+                }
+            }
+            
             // Check if this is the signup form by looking for password1 field
             const password1Field = form.querySelector('[name="password1"]');
             const password2Field = form.querySelector('[name="password2"]');

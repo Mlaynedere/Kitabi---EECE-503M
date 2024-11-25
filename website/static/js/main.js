@@ -1,5 +1,6 @@
 // Initialize all functionality when document is ready
 $(document).ready(function() {
+    const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
     // Get shop items from existing cards
     const shopItems = $('.shop-items .card').map(function() {
@@ -67,86 +68,95 @@ $(document).ready(function() {
     // Cart Functionality
 
     // Handle adding items to cart
-    $('.add-to-cart').on('click', function(e) {
+    $('.add-to-cart').on('click', function (e) {
         e.preventDefault();
         const url = $(this).data('url');
         if (!url) {
             showNotification('Invalid URL. Failed to add item to cart.', 'danger');
             return;
         }
-    
-        $.post(url, function(response) {
-            showNotification('Item added to cart successfully!', 'success');
-            updateCartBadge(1);
-        }).fail(function() {
-            showNotification('Failed to add item to cart.', 'danger');
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+            success: function (response) {
+                showNotification('Item added to cart successfully!', 'success');
+                updateCartBadge(1);
+            },
+            error: function () {
+                showNotification('Failed to add item to cart.', 'danger');
+            },
         });
     });
 
     // Handle increasing quantity in cart
-    $('.plus-cart').click(function() {
+    $('.plus-cart').click(function () {
         const productId = $(this).attr('pid');
         const quantityElement = $(this).siblings('#quantity');
         const productQuantityElement = $(`#quantity${productId}`);
-        
+
         $.ajax({
             url: '/pluscart',
-            type: 'GET',
+            type: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
             data: { cart_id: productId },
-            success: function(response) {
+            success: function (response) {
                 quantityElement.text(response.quantity);
                 productQuantityElement.text(response.quantity);
                 $('#amount_tt').text(response.amount.toFixed(2));
                 $('#totalamount').text(response.total.toFixed(2));
                 updateCartBadge(1);
             },
-            error: function() {
+            error: function () {
                 showNotification('Failed to update quantity', 'danger');
-            }
+            },
         });
     });
 
     // Handle decreasing quantity in cart
-    $('.minus-cart').click(function() {
+    $('.minus-cart').click(function () {
         const productId = $(this).attr('pid');
         const quantityElement = $(this).siblings('#quantity');
         const productQuantityElement = $(`#quantity${productId}`);
-        
+
         if (parseInt(quantityElement.text()) > 1) {
             $.ajax({
                 url: '/minuscart',
-                type: 'GET',
+                type: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
                 data: { cart_id: productId },
-                success: function(response) {
+                success: function (response) {
                     quantityElement.text(response.quantity);
                     productQuantityElement.text(response.quantity);
                     $('#amount_tt').text(response.amount.toFixed(2));
                     $('#totalamount').text(response.total.toFixed(2));
                     updateCartBadge(-1);
                 },
-                error: function() {
+                error: function () {
                     showNotification('Failed to update quantity', 'danger');
-                }
+                },
             });
         }
     });
 
     // Handle removing items from cart
-    $('.remove-cart').click(function(e) {
+    $('.remove-cart').click(function (e) {
         e.preventDefault();
         const productId = $(this).attr('pid');
         const productRow = $(this).closest('.row');
-        
+
         $.ajax({
             url: '/removecart',
-            type: 'GET',
+            type: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
             data: { cart_id: productId },
-            success: function(response) {
-                productRow.fadeOut(300, function() {
+            success: function (response) {
+                productRow.fadeOut(300, function () {
                     $(this).remove();
                     $('#amount_tt').text(response.amount.toFixed(2));
                     $('#totalamount').text(response.total.toFixed(2));
-                    
+
                     // Check if cart is empty after removal
                     if ($('.card-body .row').length === 0) {
                         location.reload();
@@ -155,9 +165,9 @@ $(document).ready(function() {
                 showNotification('Item removed from cart', 'success');
                 updateCartBadge(-response.quantity);
             },
-            error: function() {
+            error: function () {
                 showNotification('Failed to remove item', 'danger');
-            }
+            },
         });
     });
 

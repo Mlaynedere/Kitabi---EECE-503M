@@ -7,7 +7,7 @@ from flask_migrate import Migrate
 from sqlalchemy.exc import IntegrityError
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import datetime, timedelta
 import os
 
@@ -192,6 +192,7 @@ def create_app():
     from .auth import auth
     
     app.config['SECRET_KEY'] = 'test12345'
+    app.config['WTF_CSRF_SECRET_KEY'] = 'uysdguy&*%)*719640`9631gfsdljkfbhq289p74198-4610hjidb7^*&580&^^%)&%(#rogl:i!fydBSUI;T78TP189YTE72)' #Secret Key to sign the CSRF token
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -202,6 +203,10 @@ def create_app():
         PERMANENT_SESSION_LIFETIME=timedelta(minutes=30)
     )
 
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        return render_template('csrf_error.html', reason=e.description), 400
+    
     @app.template_filter('from_json')
     def from_json(value):
         try:
