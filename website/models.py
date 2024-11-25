@@ -156,7 +156,9 @@ class Order(db.Model):
     customer_link = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     product_link = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     returns = db.relationship('Return', foreign_keys='Return.order_link', back_populates='order', lazy=True)
-
+    delivery_fee = db.Column(db.Float, default=0.0)  # New field
+    discount_applied = db.Column(db.Float, default=0.0)  # New field
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field
     customer = db.relationship('Customer', back_populates='orders')
     product = db.relationship('Product', back_populates='orders')
     

@@ -1,0 +1,68 @@
+<!-- templates/bulk_upload_results.html -->
+{% extends 'base.html' %}
+
+{% block title %}Bulk Upload Results{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-clipboard-list text-primary"></i> Upload Results</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.shop_items') }}">Shop Items</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.bulk_upload') }}">Bulk Upload</a></li>
+                    <li class="breadcrumb-item active">Results</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Summary</h3>
+                    <div class="row mb-4">
+                        <div class="col">
+                            <div class="alert alert-success">
+                                <strong>Successfully uploaded:</strong> {{ success_count }} products
+                            </div>
+                        </div>
+                        {% if error_count > 0 %}
+                        <div class="col">
+                            <div class="alert alert-danger">
+                                <strong>Failed to upload:</strong> {{ error_count }} products
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if errors %}
+                    <div class="mt-4">
+                        <h4>Error Details</h4>
+                        <div class="list-group">
+                            {% for error in errors %}
+                            <div class="list-group-item list-group-item-danger">
+                                {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin.shop_items') }}" class="btn btn-primary">
+                            <i class="fas fa-list"></i> View All Products
+                        </a>
+                        <a href="{{ url_for('admin.bulk_upload') }}" class="btn btn-secondary">
+                            <i class="fas fa-upload"></i> Upload More Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

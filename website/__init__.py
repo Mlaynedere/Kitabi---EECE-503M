@@ -136,6 +136,52 @@ def seed_database():
     except Exception as e:
         db.session.rollback()
         print(f"Error seeding database: {e}")
+def create_membership_tiers():
+    """Initialize the default membership tiers"""
+    from .models import MembershipTier
+    
+    # Check if tiers already exist
+    if MembershipTier.query.first() is not None:
+        print("Membership tiers already initialized.")
+        return
+        
+    tiers = [
+        {
+            'name': 'Normal',
+            'discount_percentage': 0,
+            'free_delivery_threshold': 100,  # Free delivery over $100
+            'early_access': False,
+            'priority_support': False,
+            'points_multiplier': 1.0
+        },
+        {
+            'name': 'Premium',
+            'discount_percentage': 5,
+            'free_delivery_threshold': 50,  # Free delivery over $50
+            'early_access': True,
+            'priority_support': False,
+            'points_multiplier': 1.5
+        },
+        {
+            'name': 'Gold',
+            'discount_percentage': 10,
+            'free_delivery_threshold': None,  # Always free delivery
+            'early_access': True,
+            'priority_support': True,
+            'points_multiplier': 2.0
+        }
+    ]
+    
+    try:
+        for tier_data in tiers:
+            tier = MembershipTier(**tier_data)
+            db.session.add(tier)
+        
+        db.session.commit()
+        print("Membership tiers created successfully!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating membership tiers: {e}")
 
 def create_app():
     app = Flask(__name__)
@@ -206,6 +252,7 @@ def create_app():
     # Create database tables and initialize data
     with app.app_context():
         db.create_all()
+        create_membership_tiers()
         seed_database()
         create_initial_roles()
         create_super_admin()

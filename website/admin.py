@@ -1,10 +1,10 @@
-from flask import Blueprint, jsonify, render_template, flash, send_from_directory, redirect, request, url_for
+from flask import Blueprint, Response, jsonify, render_template, flash, send_from_directory, redirect, request, url_for
 from flask_limiter import Limiter
 from flask_login import login_required, current_user
 from flask_limiter.util import get_remote_address
 from website.security import safe_query
 from .decorators import admin_required, check_permission
-from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm, MembershipTierForm, AwardPointsForm
+from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm, MembershipTierForm, AwardPointsForm, BulkUploadForm
 from werkzeug.utils import secure_filename
 from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return, MembershipTier
 from . import db, limiter
@@ -12,6 +12,7 @@ from sqlalchemy.orm import joinedload
 from datetime import datetime
 import os
 import json
+import pandas as pd
 
 admin = Blueprint('admin', __name__)
 
@@ -44,6 +45,7 @@ def get_image(filename):
 @login_required
 @admin_required
 @check_permission('manage_products')
+@limiter.limit("50 per hour")
 def add_shop_items():
     form = ShopItemsForm()
     
@@ -167,6 +169,7 @@ def shop_items():
 @login_required
 @admin_required
 @check_permission('manage_products')
+@limiter.limit("50 per hour") 
 def update_item(item_id):
     try:
         item_to_update = Product.query.get_or_404(item_id)
@@ -300,6 +303,7 @@ def update_item(item_id):
 @login_required
 @admin_required
 @check_permission('manage_products')
+@limiter.limit("20 per hour")
 def delete_item(item_id):
     try:
         item_to_delete = Product.query.get(item_id)
@@ -334,6 +338,7 @@ def order_view():
 @login_required
 @admin_required
 @check_permission('manage_orders')
+@limiter.limit("30 per hour")
 def update_order(order_id):
     form = OrderForm()
     order = Order.query.get_or_404(order_id)
@@ -604,6 +609,8 @@ def update_inventory(product_id):
     return render_template('404.html')
 
 
+from sqlalchemy import text
+
 @admin.route('/get-subcategories/<int:category_id>')
 @login_required
 @limiter.limit("30 per minute", key_func=get_remote_address)
@@ -612,21 +619,29 @@ def get_subcategories(category_id):
         # Validate input
         if not isinstance(category_id, int) or category_id < 1:
             return jsonify({'error': 'Invalid category ID'}), 400
-
-        # Use safe query
+        
+        # Use safe query with explicit text() declaration
+        query = text("SELECT id, name FROM sub_category WHERE category_id = :cat_id ORDER BY name")
         subcategories = safe_query(
-            "SELECT id, name FROM sub_category WHERE category_id = :cat_id",
+            query,
             {'cat_id': category_id}
         ).fetchall()
-
+        
+        # Convert rows to dictionaries
+        subcategories_list = [
+            {'id': row[0], 'name': row[1]} 
+            for row in subcategories
+        ]
+        
+        # Log the response for debugging
+        print(f"Found {len(subcategories_list)} subcategories for category {category_id}")
+        
         return jsonify({
-            'subcategories': [
-                {'id': subcat.id, 'name': subcat.name} 
-                for subcat in subcategories
-            ]
+            'subcategories': subcategories_list
         })
     except Exception as e:
         log_activity('api_error', details=str(e))
+        print(f"Error in get_subcategories: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
     
 @admin.route('/roles', methods=['GET'])
@@ -885,6 +900,7 @@ def membership_tiers():
 @login_required
 @admin_required
 @check_permission('manage_users')
+@limiter.limit("10 per hour")
 def add_membership_tier():
     try:
         print("Accessing add membership tier route")  # Debug print
@@ -926,12 +942,13 @@ def add_membership_tier():
     except Exception as e:
         print(f"Route error: {e}")  # Debug print
         flash('An error occurred', 'error')
-        return redirect(url_for('admin.membership_tiers'))
+        return redirect(url_for('membership_tiers'))
     
 @admin.route('/membership-tiers/edit/<int:tier_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
 @check_permission('manage_users')
+@limiter.limit("20 per hour")
 def edit_membership_tier(tier_id):
     tier = MembershipTier.query.get_or_404(tier_id)
     form = MembershipTierForm(obj=tier)
@@ -953,19 +970,28 @@ def edit_membership_tier(tier_id):
                 details={'tier_name': tier.name}
             )
             flash('Membership tier updated successfully', 'success')
-            return redirect(url_for('admin.membership_tiers'))
+            return redirect(url_for('membership_tiers'))
         except Exception as e:
             db.session.rollback()
             flash('Error updating membership tier', 'error')
             print(f"Error updating tier: {e}")
     
     return render_template('edit_membership_tier.html', form=form, tier=tier)
+@admin.route('/customers/points', methods=['GET'])
+@login_required
+@admin_required
+@check_permission('manage_users')
+@limiter.limit("50 per hour")
+def manage_customer_points():
+    # Get all customers with their points and tiers
+    customers = Customer.query.order_by(Customer.points.desc()).all()
+    return render_template('customer_points_list.html', customers=customers)
 
 @admin.route('/customers/points/<int:customer_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
 @check_permission('manage_users')
-def manage_customer_points(customer_id):
+def manage_customer_points_detail(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     form = AwardPointsForm()
     
@@ -984,14 +1010,288 @@ def manage_customer_points(customer_id):
                     'points_awarded': form.points.data,
                     'reason': form.reason.data,
                     'previous_points': previous_points,
-                    'new_points': customer.points
+                    'new_points': customer.points,
+                    'previous_tier': customer.membership_tier.name
                 }
             )
             flash(f'Successfully awarded {form.points.data} points to {customer.username}', 'success')
-            return redirect(url_for('admin.display_customers'))
+            return redirect(url_for('manage_customer_points'))
         except Exception as e:
             db.session.rollback()
             flash('Error awarding points', 'error')
             print(f"Error awarding points: {e}")
     
     return render_template('manage_points.html', form=form, customer=customer)
+
+
+import os
+import requests
+from urllib.parse import urlparse
+from werkzeug.utils import secure_filename
+from flask import Blueprint, request, flash, redirect, url_for, render_template
+from io import StringIO
+import csv
+
+def validate_csv_headers(headers):
+    """Validate that all required headers are present in the CSV file."""
+    required_headers = {
+        'product_name', 'author', 'rating', 'current_price', 
+        'in_stock', 'category_id', 'subcategory_id', 
+        'promotion_percentage', 'flash_sale', 'product_picture'
+    }
+    return required_headers.issubset(set(headers))
+
+from urllib.parse import urlparse
+from werkzeug.utils import secure_filename
+
+def download_image(image_url, media_path):
+    """Download image from URL with fallback to placeholder."""
+    try:
+        # Check if image_url is empty or None
+        if not image_url:
+            return get_placeholder_image_path()
+            
+        # Parse URL to get filename
+        filename = secure_filename(os.path.basename(urlparse(image_url).path))
+        if not filename:
+            filename = f"product_{os.urandom(8).hex()}.jpg"
+        
+        # Ensure file has an extension
+        if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif']):
+            filename += '.jpg'
+            
+        file_path = os.path.join(media_path, filename)
+        
+        # Try to download image
+        try:
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+            
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+                
+            return os.path.join('./media', filename)
+            
+        except requests.exceptions.RequestException:
+            # If download fails, use placeholder
+            return get_placeholder_image_path()
+            
+    except Exception as e:
+        print(f"Error handling image {image_url}: {str(e)}")
+        return get_placeholder_image_path()
+
+def get_placeholder_image_path():
+    """Return path to placeholder image."""
+    placeholder_path = os.path.join('./media', 'placeholder.jpg')
+    
+    # Create placeholder if it doesn't exist
+    if not os.path.exists(placeholder_path):
+        create_placeholder_image(placeholder_path)
+        
+    return './media/placeholder.jpg'
+
+def create_placeholder_image(path):
+    """Create a simple placeholder image."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        
+        # Create a 300x300 white image
+        img = Image.new('RGB', (300, 300), color='white')
+        d = ImageDraw.Draw(img)
+        
+        # Add text "No Image Available"
+        d.text((100,150), "No Image\nAvailable", fill='gray')
+        
+        # Save the image
+        img.save(path)
+    except Exception as e:
+        print(f"Error creating placeholder: {str(e)}")
+
+def process_csv_row(row, media_path):
+    """Process a single CSV row and return product data."""
+    try:
+        # Convert flash_sale to boolean
+        flash_sale = str(row.get('flash_sale', '')).lower() in ['true', '1', 'yes']
+        
+        # Handle product image with more flexibility
+        product_picture = row.get('product_picture', '')
+        
+        if product_picture:
+            if product_picture.startswith(('http://', 'https://')):
+                # Handle remote URLs
+                product_picture = download_image(product_picture, media_path)
+            elif os.path.isfile(product_picture):
+                # Handle local files
+                filename = secure_filename(os.path.basename(product_picture))
+                dest_path = os.path.join(media_path, filename)
+                with open(product_picture, 'rb') as src, open(dest_path, 'wb') as dst:
+                    dst.write(src.read())
+                product_picture = os.path.join('./media', filename)
+            else:
+                # Use placeholder if path is invalid
+                product_picture = get_placeholder_image_path()
+        else:
+            # Use placeholder if no image specified
+            product_picture = get_placeholder_image_path()
+                
+        # Calculate discounted price
+        current_price = float(row['current_price'])
+        promotion_percentage = float(row.get('promotion_percentage', 0))
+        discounted_price = current_price - (current_price * promotion_percentage / 100)
+        
+        return {
+            'product_name': row['product_name'],
+            'author': row['author'],
+            'rating': float(row['rating']),
+            'current_price': current_price,
+            'in_stock': int(row['in_stock']),
+            'flash_sale': flash_sale,
+            'promotion_percentage': promotion_percentage,
+            'discounted_price': discounted_price,
+            'product_picture': product_picture,
+            'category_id': int(row['category_id']),
+            'subcategory_id': int(row['subcategory_id']),
+            'warehouse_location': row.get('warehouse_location', 'Main Warehouse'),
+            'low_stock_threshold': int(row.get('low_stock_threshold', 10))
+        }
+    except Exception as e:
+        raise ValueError(f"Error processing row: {str(e)}")
+
+def generate_csv_template():
+    """Generate a template CSV file for bulk uploads."""
+    template_data = {
+        'product_name': ['Example Book 1', 'Example Book 2'],
+        'author': ['Author 1', 'Author 2'],
+        'rating': [4.5, 4.0],
+        'current_price': [29.99, 19.99],
+        'in_stock': [100, 50],
+        'category_id': [1, 1],
+        'subcategory_id': [1, 2],
+        'promotion_percentage': [0, 10],
+        'flash_sale': [False, True],
+        'product_picture': ['', ''],  # Empty for placeholder images
+        'warehouse_location': ['Main Warehouse', 'North Warehouse'],
+        'low_stock_threshold': [10, 15]
+    }
+    
+    df = pd.DataFrame(template_data)
+    return df.to_csv(index=False)
+
+@admin.route('/bulk-upload', methods=['GET', 'POST'])
+@login_required
+@admin_required
+@check_permission('manage_products')
+@limiter.limit("10 per hour") 
+def bulk_upload():
+    form = BulkUploadForm()
+    
+    if form.validate_on_submit():
+        try:
+            file = form.csv_file.data
+            if file.filename == '':
+                flash('No file selected', 'error')
+                return redirect(request.url)
+                
+            csv_content = StringIO(file.stream.read().decode("UTF8"))
+            csv_reader = csv.DictReader(csv_content)
+            
+            # Validate headers
+            if not validate_csv_headers(csv_reader.fieldnames):
+                flash('Invalid CSV format. Please check the template.', 'error')
+                return redirect(request.url)
+                
+            # Ensure media directory exists
+            media_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
+            os.makedirs(media_path, exist_ok=True)
+            
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            # Process each row
+            for row_num, row in enumerate(csv_reader, start=2):
+                try:
+                    product_data = process_csv_row(row, media_path)
+                    
+                    # Create new product
+                    new_product = Product(**product_data)
+                    db.session.add(new_product)
+                    
+                    success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Row {row_num}: {str(e)}")
+                    continue
+                    
+            # Commit all successful products
+            try:
+                db.session.commit()
+                
+                # Log the activity
+                log_activity(
+                    action='bulk_upload_products',
+                    entity_type='product',
+                    details={
+                        'success_count': success_count,
+                        'error_count': error_count,
+                        'errors': errors[:10]  # Log first 10 errors
+                    }
+                )
+                
+                flash(f'Successfully uploaded {success_count} products. {error_count} failures.', 
+                      'success' if error_count == 0 else 'warning')
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Database error: {str(e)}', 'error')
+                
+            # If there were errors, provide detailed feedback
+            if errors:
+                return render_template(
+                    'bulk_upload_results.html',
+                    success_count=success_count,
+                    error_count=error_count,
+                    errors=errors
+                )
+                
+            return redirect(url_for('admin.shop_items'))
+            
+        except Exception as e:
+            flash(f'Error processing file: {str(e)}', 'error')
+            return redirect(request.url)
+            
+    # GET request - show upload form
+    return render_template('bulk_upload.html', form=form)
+
+def generate_csv_template():
+    """Generate a template CSV file for bulk uploads."""
+    template_data = {
+        'product_name': ['Example Book 1', 'Example Book 2'],
+        'author': ['Author 1', 'Author 2'],
+        'rating': [4.5, 4.0],
+        'current_price': [29.99, 19.99],
+        'in_stock': [100, 50],
+        'category_id': [1, 1],
+        'subcategory_id': [1, 2],
+        'promotion_percentage': [0, 10],
+        'flash_sale': [False, True],
+        'product_picture': ['https://example.com/book1.jpg', 'https://example.com/book2.jpg'],
+        'warehouse_location': ['Main Warehouse', 'North Warehouse'],
+        'low_stock_threshold': [10, 15]
+    }
+    
+    df = pd.DataFrame(template_data)
+    return df.to_csv(index=False)
+
+@admin.route('/download-template')
+@login_required
+@admin_required
+def download_template():
+    """Download a CSV template for bulk uploads."""
+    template = generate_csv_template()
+    return Response(
+        template,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment;filename=bulk_upload_template.csv'}
+    )

@@ -3,7 +3,7 @@
 {% block title %}Add Shop Items{% endblock %}
 
 {% block body %}
-<div class="container  ">
+<div class="container">
     <div class="row mb-4">
         <div class="col">
             <h2><i class="fas fa-plus-circle text-primary"></i> Add Shop Items</h2>
@@ -17,10 +17,43 @@
         </div>
     </div>
 
+    <!-- Add the bulk upload card -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0"><i class="fas fa-file-upload text-primary"></i> Bulk Upload Products</h4>
+                        <p class="text-muted mb-0">Upload multiple products at once using a CSV file</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('admin.bulk_upload') }}" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Start Bulk Upload
+                        </a>
+                        <a href="{{ url_for('admin.download_template') }}" class="btn btn-outline-primary ms-2">
+                            <i class="fas fa-download"></i> Download Template
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="row mb-4">
+        <div class="col-md-8 mx-auto">
+            <div class="d-flex align-items-center">
+                <div class="flex-grow-1 border-bottom"></div>
+                <div class="mx-3 text-muted">OR</div>
+                <div class="flex-grow-1 border-bottom"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="bg-white p-4 rounded-lg shadow-sm">
-                <h3 class="text-center mb-4">Add a New Item</h3>
+                <h3 class="text-center mb-4">Add a Single Item</h3>
                 <form action="" method="POST" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
 
@@ -93,31 +126,54 @@
     </div>
 </div>
 
-<!-- JavaScript to dynamically update subcategory based on category selection -->
 <script>
-    document.getElementById('category-select').addEventListener('change', function() {
-        const categoryId = this.value;
-        const subcategorySelect = document.getElementById('subcategory-select');
-        
-        // Clear existing subcategory options
-        subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
-        
-        if (categoryId) {
-            fetch(`/get-subcategories/${categoryId}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Populate subcategory options
-                    data.subcategories.forEach(subcategory => {
-                        const option = document.createElement('option');
-                        option.value = subcategory.id;
-                        option.textContent = subcategory.name;
-                        subcategorySelect.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error fetching subcategories:', error);
-                });
-        }
-    });
+   document.getElementById('category-select').addEventListener('change', function() {
+    const categoryId = this.value;
+    const subcategorySelect = document.getElementById('subcategory-select');
+    
+    // Clear existing subcategory options
+    subcategorySelect.innerHTML = '<option value="">Loading subcategories...</option>';
+    
+    if (categoryId) {
+        // Get the current URL path
+        const currentPath = window.location.pathname;
+        // Construct the URL relative to the current path
+        const fetchUrl = currentPath.includes('/admin') ? 
+            `/admin/get-subcategories/${categoryId}` : 
+            `/get-subcategories/${categoryId}`;
+            
+        fetch(fetchUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+                
+                if (data.subcategories && Array.isArray(data.subcategories)) {
+                    if (data.subcategories.length === 0) {
+                        subcategorySelect.innerHTML = '<option value="">No subcategories available</option>';
+                    } else {
+                        data.subcategories.forEach(subcategory => {
+                            const option = document.createElement('option');
+                            option.value = subcategory.id;
+                            option.textContent = subcategory.name;
+                            subcategorySelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    throw new Error('Invalid data format received from server');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                subcategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
+            });
+    } else {
+        subcategorySelect.innerHTML = '<option value="">Select category first</option>';
+    }
+});
 </script>
 {% endblock %}

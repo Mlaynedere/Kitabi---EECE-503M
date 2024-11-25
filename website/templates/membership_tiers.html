@@ -20,7 +20,7 @@
         <a href="{{ url_for('admin.add_membership_tier') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add New Tier
         </a>
-        <a href="{{ url_for('admin.display_customers') }}" class="btn btn-secondary">
+        <a href="{{ url_for('admin.manage_customer_points') }}" class="btn btn-secondary">
             <i class="fas fa-users"></i> Manage Customers
         </a>
     </div>
@@ -98,7 +98,7 @@
                                         <td>{{ customer.username }}</td>
                                         <td>{{ customer.points }}</td>
                                         <td>
-                                            <a href="{{ url_for('admin.manage_customer_points', customer_id=customer.id) }}" 
+                                            <a href="{{ url_for('admin.manage_customer_points_detail', customer_id=customer.id) }}" 
                                                class="btn btn-sm btn-success">
                                                 <i class="fas fa-coins"></i> Manage Points
                                             </a>

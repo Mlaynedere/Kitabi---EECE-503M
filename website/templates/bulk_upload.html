@@ -1,0 +1,72 @@
+<!-- templates/bulk_upload.html -->
+{% extends 'base.html' %}
+
+{% block title %}Bulk Upload Products{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-upload text-primary"></i> Bulk Upload Products</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.admin_page') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin.shop_items') }}">Shop Items</a></li>
+                    <li class="breadcrumb-item active">Bulk Upload</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h3 class="text-center mb-4">Upload Multiple Products</h3>
+                
+                <div class="alert alert-info">
+                    <h5>Instructions:</h5>
+                    <ol>
+                        <li>Download the template CSV file below</li>
+                        <li>Fill in your product information following the template format</li>
+                        <li>For product images, you can:</li>
+                        <ul>
+                            <li>Leave the field empty to use a placeholder image</li>
+                            <li>Provide a URL to an online image</li>
+                            <li>Use a local file path on your computer</li>
+                        </ul>
+                        <li>Upload your completed CSV file</li>
+                    </ol>
+                    <div class="mt-3">
+                        <a href="{{ url_for('admin.download_template') }}" class="btn btn-info">
+                            <i class="fas fa-download"></i> Download Template
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Sample CSV Format -->
+                <div class="alert alert-secondary mt-3">
+                    <h5>CSV Format Example:</h5>
+                    <pre class="mb-0"><code>product_name,author,rating,current_price,in_stock,category_id,subcategory_id,flash_sale,promotion_percentage,product_picture
+"Book Title","Author Name",4.5,29.99,100,1,1,false,0,
+"Another Book","Second Author",4.0,19.99,50,1,2,true,10,https://example.com/book.jpg</code></pre>
+                </div>
+
+                <form action="" method="POST" enctype="multipart/form-data" class="mt-4">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Upload CSV File</label>
+                        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload Products
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

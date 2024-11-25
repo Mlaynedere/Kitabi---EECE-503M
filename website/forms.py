@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, FloatField, PasswordField, EmailField, BooleanField, SubmitField, FileField, SelectField, TextAreaField, SelectMultipleField
 from wtforms.validators import DataRequired,NumberRange, ValidationError, length, Optional
-from flask_wtf.file import FileAllowed
+from flask_wtf.file import FileAllowed, FileRequired
 
 class SignUpForm(FlaskForm):
     full_name = StringField('Full Name', validators=[DataRequired(), length(min=2)])
@@ -197,3 +197,11 @@ class AwardPointsForm(FlaskForm):
         default=0)
     reason = StringField('Reason', validators=[DataRequired()])
     submit = SubmitField('Award Points')
+
+
+class BulkUploadForm(FlaskForm):
+    csv_file = FileField('CSV File', validators=[
+        FileRequired(message='Please select a CSV file'),
+        FileAllowed(['csv'], 'Only CSV files are allowed!')
+    ])
+    submit = SubmitField('Upload Products')

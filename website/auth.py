@@ -85,7 +85,10 @@ def sign_up():
                 return redirect(url_for('auth.sign_up'))
     
     return render_template('signup.html', form=form)
+
+
 @auth.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('views.home'))
@@ -106,24 +109,9 @@ def login():
             flash('Email not registered. Please sign up first.', category='error')
     
     return render_template('login.html', form=form)
-    # form = LoginForm()
-    # if form.validate_on_submit():
-    #     email = form.email.data
-    #     password = form.password.data
-        
-    #     customer = Customer.query.filter_by(email=email).first()
-
-    #     if customer:
-    #         if customer.verify_password(password=password):
-    #             login_user(customer)
-    #             redirect('/')
-    #         else:
-    #             flash('Incorrect Email or Password!')
-    #     else:
-    #         flash('Account does not exist, please sign up!')
-    # return render_template('login.html', form=form)
 
 @auth.route('/logout', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 @login_required
 def log_out():
     logout_user()
@@ -131,6 +119,7 @@ def log_out():
     return redirect('/')
 
 @auth.route('/account/<int:user_id>')
+@limiter.limit("30 per minute")
 @login_required
 def account(user_id):
     user = Customer.query.get(user_id)
@@ -139,6 +128,7 @@ def account(user_id):
                          categories=get_categories_dict())
 
 @auth.route('/change-password/<int:user_id>', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 @login_required
 def change_password(user_id):
     form = PasswordChangeForm()
@@ -150,6 +140,12 @@ def change_password(user_id):
 
         if user.check_password(current_password):
             if new_password == confirm_new_password:
+                is_valid, msg = password_meets_requirements(new_password)
+                if not is_valid:
+                    flash(msg, 'error')
+                    return redirect(url_for('auth.change_password', user_id=user.id))
+                
+
                 user.password = confirm_new_password
                 db.session.commit()
                 flash('Password Updated Successfully')

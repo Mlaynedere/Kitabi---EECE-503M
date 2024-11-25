@@ -256,110 +256,107 @@
     </div>
 </nav>
 
-    <!-- Sidebar based on user type -->
-    {% if current_user.is_authenticated %}
-        {% if current_user.is_admin %}
-            <!-- Admin Sidebar -->
-            <div class="admin-sidebar">
-                <div class="text-center mb-4">
-                    <i class="fas fa-user-shield fa-3x text-primary"></i>
-                    <h5 class="mt-2">Admin Panel</h5>
-                </div>
+<!-- Admin Sidebar -->
+{% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="admin-sidebar">
+        <div class="text-center mb-4">
+            <i class="fas fa-user-shield fa-3x text-primary"></i>
+            <h5 class="mt-2">Admin Panel</h5>
+        </div>
 
-                <div class="nav flex-column">
-                    <a class="admin-nav-item" href="{{ url_for('admin.admin_page') }}">
-                        <i class="fas fa-tachometer-alt"></i>Dashboard
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.shop_items') }}">
-                        <i class="fas fa-tags"></i>Manage Products
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.inventory_management') }}">
-                        <i class="fas fa-boxes"></i>Manage Inventory
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.returns_management') }}">
-                        <i class="fas fa-undo"></i>Manage Returns
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.order_view') }}">
-                        <i class="fas fa-shopping-cart"></i>Manage Orders
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.manage_roles') }}">
-                        <i class="fas fa-user-cog"></i>Manage Roles
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.membership_tiers') }}">
-                        <i class="fas fa-crown"></i>Membership Tiers
-                    </a>
-                    <a class="admin-nav-item" href="{{ url_for('admin.view_activity_logs') }}">
-                        <i class="fas fa-history"></i>Activity Logs
-                    </a>
-                </div>
+        <div class="nav flex-column">
+            <!-- Dashboard always visible to admin -->
+            <a class="admin-nav-item" href="{{ url_for('admin.admin_page') }}">
+                <i class="fas fa-tachometer-alt"></i>Dashboard
+            </a>
+
+            <!-- Products Management -->
+            {% if current_user.has_permission('manage_products') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.shop_items') }}">
+                <i class="fas fa-tags"></i>Manage Products
+            </a>
+            {% endif %}
+
+            <!-- Inventory Management -->
+            {% if current_user.has_permission('manage_inventory') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.inventory_management') }}">
+                <i class="fas fa-boxes"></i>Manage Inventory
+            </a>
+            {% endif %}
+
+            <!-- Returns Management -->
+            {% if current_user.has_permission('manage_returns') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.returns_management') }}">
+                <i class="fas fa-undo"></i>Manage Returns
+            </a>
+            {% endif %}
+
+            <!-- Order Management -->
+            {% if current_user.has_permission('manage_orders') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.order_view') }}">
+                <i class="fas fa-shopping-cart"></i>Manage Orders
+            </a>
+            {% endif %}
+
+            <!-- User Management -->
+            {% if current_user.has_permission('manage_users') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.manage_roles') }}">
+                <i class="fas fa-user-cog"></i>Manage Roles
+            </a>
+            <a class="admin-nav-item" href="{{ url_for('admin.membership_tiers') }}">
+                <i class="fas fa-crown"></i>Membership Tiers
+            </a>
+            {% endif %}
+
+            <!-- Reports/Logs -->
+            {% if current_user.has_permission('view_reports') %}
+            <a class="admin-nav-item" href="{{ url_for('admin.view_activity_logs') }}">
+                <i class="fas fa-history"></i>Activity Logs
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+{% elif current_user.is_authenticated and not current_user.is_admin %}
+    <!-- Regular User Sidebar (keep existing code) -->
+    <div class="sidebar">
+        <!-- Categories Section -->
+        <div class="nav-section">
+            <div class="nav-section-title">Categories</div>
+            <div class="accordion" id="categoriesAccordion">
+                <!-- Keep existing categories code -->
             </div>
-        {% else %}
-            <!-- Regular User Sidebar -->
-            <div class="sidebar">
-                <!-- Categories Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">Categories</div>
-                    <div class="accordion" id="categoriesAccordion">
-                        {% for category, subcategories in categories.items() %}
-                            <div class="accordion-item border-0">
-                                <h2 class="accordion-header" id="heading{{ loop.index }}">
-                                    <button class="accordion-button collapsed py-2" type="button" 
-                                            data-bs-toggle="collapse" 
-                                            data-bs-target="#collapse{{ loop.index }}">
-                                        {{ category }}
-                                    </button>
-                                </h2>
-                                <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
-                                     data-bs-parent="#categoriesAccordion">
-                                    <div class="accordion-body py-1">
-                                        <ul class="list-unstyled mb-0">
-                                            {% for subcategory in subcategories %}
-                                                <li class="mb-1">
-                                                    <a href="{{ url_for('views.filtered_products', 
-                                                           category=category, subcategory=subcategory) }}" 
-                                                       class="text-decoration-none text-muted small">
-                                                        {{ subcategory }}
-                                                    </a>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
+        </div>
 
-                <!-- Orders and Cart Section -->
-                <div class="nav-section">
-                    <a href="/orders" class="sidebar-nav-item">
-                        <i class="fas fa-shopping-bag"></i>Orders
-                        {% if current_user.orders|length > 0 %}
-                            <span class="badge bg-primary ms-auto">{{ current_user.orders|length }}</span>
-                        {% endif %}
-                    </a>
-                    <a href="/cart" class="sidebar-nav-item">
-                        <i class="fas fa-shopping-cart"></i>Cart
-                        {% if current_user.cart_items|length > 0 %}
-                            <span class="badge bg-primary ms-auto">{{ current_user.cart_items|length }}</span>
-                        {% endif %}
-                    </a>
-                </div>
+        <!-- Orders and Cart Section -->
+        <div class="nav-section">
+            <a href="/orders" class="sidebar-nav-item">
+                <i class="fas fa-shopping-bag"></i>Orders
+                {% if current_user.orders|length > 0 %}
+                    <span class="badge bg-primary ms-auto">{{ current_user.orders|length }}</span>
+                {% endif %}
+            </a>
+            <a href="/cart" class="sidebar-nav-item">
+                <i class="fas fa-shopping-cart"></i>Cart
+                {% if current_user.cart_items|length > 0 %}
+                    <span class="badge bg-primary ms-auto">{{ current_user.cart_items|length }}</span>
+                {% endif %}
+            </a>
+        </div>
 
-                <!-- Account Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">Account</div>
-                    <a href="/account/{{current_user.id}}" class="sidebar-nav-item">
-                        <i class="fas fa-user-cog"></i>Profile Settings
-                    </a>
-                    <a href="{{ url_for('auth.log_out') }}" class="sidebar-nav-item">
-                        <i class="fas fa-sign-out-alt"></i>Log Out
-                    </a>
-                </div>
-            </div>
-        {% endif %}
-    {% else %}
-            <!-- Non-authenticated User Sidebar - Only Categories -->
+        <!-- Account Section -->
+        <div class="nav-section">
+            <div class="nav-section-title">Account</div>
+            <a href="/account/{{current_user.id}}" class="sidebar-nav-item">
+                <i class="fas fa-user-cog"></i>Profile Settings
+            </a>
+            <a href="{{ url_for('auth.log_out') }}" class="sidebar-nav-item">
+                <i class="fas fa-sign-out-alt"></i>Log Out
+            </a>
+        </div>
+    </div>
+
+{% else %}
 
     <div class="sidebar">
         <div class="nav-section">

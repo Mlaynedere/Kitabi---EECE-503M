@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, render_template, flash, redirect, request, jsonify, url_for
 from flask_limiter import Limiter
 from flask_login import login_required, current_user
@@ -194,95 +195,108 @@ def secure_payment_call(phone_number, email, amount, narrative):
 
 @views.route('/place-order')
 @login_required
-@limiter.limit("10 per minute") 
+@limiter.limit("10 per minute")
 def place_order():
-    customer_cart = Cart.query.filter_by(customer_link=current_user.id)
-    if customer_cart:
-        try:
-            total = 0
-            for item in customer_cart:
-                total += item.product.current_price * item.quantity
-            
-            if current_user.membership_tier:
-                discount = total * (current_user.membership_tier.discount_percentage / 100)
-                total -= discount
+    try:
+        customer_cart = Cart.query.filter_by(customer_link=current_user.id).all()
+        
+        if not customer_cart:
+            flash('Your cart is empty', 'error')
+            return redirect(url_for('views.show_cart'))
 
-             # Check for free delivery
-            delivery_fee = 3  # Default delivery fee
-            if current_user.membership_tier:
-                if current_user.membership_tier.free_delivery_threshold is None:  # Gold tier
-                    delivery_fee = 0
-                elif total >= current_user.membership_tier.free_delivery_threshold:
-                    delivery_fee = 0
+        # Calculate totals
+        total = sum(item.product.current_price * item.quantity for item in customer_cart)
+        
+        # Apply membership discount if applicable
+        discount = 0
+        if current_user.membership_tier:
+            discount = total * (current_user.membership_tier.discount_percentage / 100)
+        total_after_discount = total - discount
 
-            final_total = total + delivery_fee
+        # Calculate delivery fee
+        delivery_fee = 3  # Default delivery fee
+        if current_user.membership_tier:
+            if current_user.membership_tier.free_delivery_threshold is None:
+                delivery_fee = 0
+            elif total_after_discount >= current_user.membership_tier.free_delivery_threshold:
+                delivery_fee = 0
 
+        final_total = total_after_discount + delivery_fee
 
-            # Process payment
-            service = APIService(token=API_TOKEN, publishable_key=API_PUBLISHABLE_KEY, test=True)
-            create_order_response = secure_payment_call(
-                phone_number='25470174294',
-                email=current_user.email,
-                amount=final_total,
-                narrative='Purchase of goods'
-            )
-            # If payment successful, process order and award points
-            if create_order_response['invoice']['state'].capitalize() == 'Completed':
-                # Award points based on pre-discount total and tier multiplier
-                points_earned = int(total * current_user.membership_tier.points_multiplier)
-                current_user.points += points_earned
-                
-                # Check for tier upgrade
-                current_user.check_tier_upgrade()
+        # Validate stock availability
+        for cart_item in customer_cart:
+            if cart_item.quantity > cart_item.product.in_stock:
+                flash(f'Not enough stock for {cart_item.product.product_name}. Available: {cart_item.product.in_stock}', 'error')
+                return redirect(url_for('views.show_cart'))
 
+        # Process order without payment integration
+        with db.session.begin_nested():
+            # Calculate and award points
+            points_earned = int(total * current_user.membership_tier.points_multiplier)
+            current_user.points += points_earned
 
-            for item in customer_cart:
-                new_order = Order()
-                new_order.quantity = item.quantity
-                new_order.price = item.product.current_price
-                new_order.status = create_order_response['invoice']['state'].capitalize()
-                new_order.payment_id = create_order_response['id']
+            # Check for tier upgrade
+            current_user.check_tier_upgrade()
 
-                new_order.product_link = item.product_link
-                new_order.customer_link = item.customer_link
-
-                db.session.add(new_order)
-
-                product = Product.query.get(item.product_link)
-
-                product.in_stock -= item.quantity
-
-                db.session.delete(item)
-
-# Log the points award
-                log_activity(
-                    action='award_order_points',
-                    entity_type='customer',
-                    entity_id=current_user.id,
-                    details={
-                        'points_earned': points_earned,
-                        'order_total': total,
-                        'tier_multiplier': current_user.membership_tier.points_multiplier
-                    }
+            # Create orders and update inventory
+            orders_created = []
+            for cart_item in customer_cart:
+                # Create order
+                new_order = Order(
+                    quantity=cart_item.quantity,
+                    price=cart_item.product.current_price,
+                    status='Completed',  # Set default status
+                    payment_id=f'ORDER{datetime.utcnow().strftime("%Y%m%d%H%M%S")}',  # Generate simple order ID
+                    product_link=cart_item.product_link,
+                    customer_link=cart_item.customer_link,
+                    delivery_fee=delivery_fee if cart_item == customer_cart[0] else 0,  # Apply delivery fee to first item only
+                    discount_applied=discount if cart_item == customer_cart[0] else 0  # Apply discount to first item only
                 )
+                db.session.add(new_order)
+                orders_created.append(new_order)
 
-                db.session.commit()
-                flash(f'Order Placed Successfully! You earned {points_earned} points!')
-                return redirect('/orders')
+                # Update product stock
+                product = cart_item.product
+                if product.in_stock < cart_item.quantity:
+                    raise ValueError(f'Insufficient stock for {product.product_name}')
+                product.in_stock -= cart_item.quantity
 
-            else:
-                flash('Payment processing failed', 'error')
-                return redirect('/cart')
+                # Remove cart item
+                db.session.delete(cart_item)
 
-        except Exception as e:
-            print(f"Error processing order: {e}")
-            db.session.rollback()
-            flash('Order not placed', 'error')
-            return redirect('/')
-    else:
-        flash('Your cart is Empty')
-        return redirect('/')
+            # Log activity
+            log_activity(
+                action='order_placed',
+                entity_type='customer',
+                entity_id=current_user.id,
+                details={
+                    'points_earned': points_earned,
+                    'order_total': total,
+                    'final_total': final_total,
+                    'discount': discount,
+                    'delivery_fee': delivery_fee,
+                    'tier_multiplier': current_user.membership_tier.points_multiplier
+                }
+            )
+
+        # Commit the transaction
+        db.session.commit()
+
+        flash(f'Order placed successfully! You earned {points_earned} points!', 'success')
+        return redirect(url_for('views.order'))
+
+    except ValueError as ve:
+        db.session.rollback()
+        flash(str(ve), 'error')
+        return redirect(url_for('views.show_cart'))
     
+    except Exception as e:
+        db.session.rollback()
+        print(f"Order processing error: {str(e)}")
+        flash('An error occurred while processing your order. Please try again.', 'error')
+        return redirect(url_for('views.show_cart'))
+    
+
 @views.route('/orders')
 @login_required
 def order():
