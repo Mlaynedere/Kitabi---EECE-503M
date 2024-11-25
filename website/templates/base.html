@@ -55,6 +55,39 @@
             transition: transform 0.3s ease-in-out;
             padding: 1rem;
         }
+        /* Search suggestions styles */
+.search-suggestion {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-suggestion:hover,
+.search-suggestion.highlighted {
+    background-color: #f8f9fa;
+}
+
+.suggestion-author {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Sidebar search styles */
+.sidebar .nav-section .position-relative {
+    z-index: 1050;
+}
+
+#sidebarSearchSuggestions,
+#searchSuggestions {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar .nav-section:first-child {
+        margin-top: 1rem;
+    }
+}
 
         .sidebar {
             background-color: white;
@@ -117,6 +150,20 @@
             color: #0d6efd;
             text-decoration: none;
         }
+        .sidebar .nav-section .position-relative {
+    z-index: 1050; /* Ensure suggestions appear above other content */
+}
+
+#sidebarSearchSuggestions {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+@media (max-width: 991.98px) {
+    .sidebar .nav-section:first-child {
+        margin-top: 1rem;
+    }
+}
 
         .admin-nav-item i {
             width: 1.5rem;
@@ -190,11 +237,9 @@
 <nav class="navbar navbar-light bg-white fixed-top shadow-sm">
     <div class="container-fluid">
         <div class="d-flex align-items-center">
-            {% if current_user.is_authenticated %}
                 <button id="sidebarToggle" class="btn d-lg-none">
                     <i class="fas fa-bars"></i>
                 </button>
-            {% endif %}
             <a class="navbar-brand d-flex align-items-center" href="/">
                 <i class="fas fa-book-open text-primary me-2"></i>
                 <span class="font-weight-bold">Kitabi</span>
@@ -203,18 +248,24 @@
     
         {% if not current_user.is_authenticated or not current_user.is_admin %}
             <!-- Search Bar -->
-            <form method="POST" enctype="multipart/form-data" class="d-none d-md-flex mx-auto" style="width: 40%;">
+            <form action="{{ url_for('views.search') }}" method="GET" class="d-none d-md-flex mx-auto" style="width: 40%;">
                 {% if form %}
                     {{ form.hidden_tag() }}
                 {% endif %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Search for books...">
-                    <button class="btn btn-primary" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
+                    <input type="text" 
+                    class="form-control" 
+                    id="searchInput"
+                    name="query" 
+                    placeholder="Search for books..." 
+                    autocomplete="off">
+             <button class="btn btn-primary" type="submit">
+                 <i class="fas fa-search"></i>
+             </button>
+         </div>
+         <div id="searchSuggestions" class="position-absolute w-100 bg-white shadow-sm rounded-bottom border" style="top: 100%; z-index: 1000; display: none;"></div>
+     </form>
         {% else %}
             <!-- Empty div to maintain spacing when search bar is hidden -->
             <div class="mx-auto" style="width: 40%;"></div>
@@ -323,15 +374,57 @@
     </div>
 
 {% elif current_user.is_authenticated and not current_user.is_admin %}
-    <!-- Regular User Sidebar (keep existing code) -->
+    <!-- Regular User Sidebar -->
     <div class="sidebar">
-        <!-- Categories Section -->
+        <div class="nav-section d-lg-none">
+            <form method="GET" action="{{ url_for('views.search') }}" class="position-relative mb-3">
+                <div class="input-group">
+                    <input type="text" 
+                           class="form-control" 
+                           id="sidebarSearchInput"
+                           name="query" 
+                           placeholder="Search for books..." 
+                           autocomplete="off">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div id="sidebarSearchSuggestions" class="position-absolute w-100 bg-white shadow-sm rounded-bottom border" style="top: 100%; z-index: 1000; display: none;"></div>
+            </form>
+        </div>
         <div class="nav-section">
             <div class="nav-section-title">Categories</div>
             <div class="accordion" id="categoriesAccordion">
-                <!-- Keep existing categories code -->
+                {% for category, subcategories in categories.items() %}
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button collapsed py-2" type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ loop.index }}">
+                                {{ category }}
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                             data-bs-parent="#categoriesAccordion">
+                            <div class="accordion-body py-1">
+                                <ul class="list-unstyled mb-0">
+                                    {% for subcategory in subcategories %}
+                                        <li class="mb-1">
+                                            <a href="{{ url_for('views.filtered_products', 
+                                                   category=category, subcategory=subcategory) }}" 
+                                               class="text-decoration-none text-muted small">
+                                                {{ subcategory }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-        </div>
+    
 
         <!-- Orders and Cart Section -->
         <div class="nav-section">
@@ -364,6 +457,22 @@
 {% else %}
 
     <div class="sidebar">
+        <div class="nav-section d-lg-none">
+            <form method="GET" action="{{ url_for('views.search') }}" class="position-relative mb-3">
+                <div class="input-group">
+                    <input type="text" 
+                           class="form-control" 
+                           id="sidebarSearchInput"
+                           name="query" 
+                           placeholder="Search for books..." 
+                           autocomplete="off">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div id="sidebarSearchSuggestions" class="position-absolute w-100 bg-white shadow-sm rounded-bottom border" style="top: 100%; z-index: 1000; display: none;"></div>
+            </form>
+        </div>
         <div class="nav-section">
             <div class="nav-section-title">Categories</div>
             <div class="accordion" id="categoriesAccordion">
@@ -446,38 +555,155 @@
         </div>
     </div>
 </footer>
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-    <!-- Scripts -->
-    <script src="{{ url_for('static', filename='js/jquery.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/owl.carousel.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar, .admin-sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show-sidebar');
+        });
+    }
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.querySelector('.sidebar, .admin-sidebar');
-            
-            if (sidebarToggle && sidebar) {
-                sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('show-sidebar');
-                });
-            }
-
-            // Activate current admin nav item based on URL
-            if (document.querySelector('.admin-sidebar')) {
-                const currentPath = window.location.pathname;
-                const navLinks = document.querySelectorAll('.admin-nav-item');
-                
-                navLinks.forEach(link => {
-                    if (link.getAttribute('href') === currentPath) {
-                        link.classList.add('active');
-                    }
-                });
+    // Admin nav active state
+    if (document.querySelector('.admin-sidebar')) {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.admin-nav-item');
+        
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
             }
         });
-    </script>
+    }
 
-    {% block scripts %}{% endblock %}
+    // Search functionality for both main and sidebar search
+    function setupSearch(inputId, suggestionsId) {
+        const searchInput = document.getElementById(inputId);
+        const suggestionsContainer = document.getElementById(suggestionsId);
+        let debounceTimer;
+
+        if (searchInput && suggestionsContainer) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
+                
+                if (query.length < 2) {
+                    suggestionsContainer.style.display = 'none';
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`/search-suggestions?query=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.length > 0) {
+                                suggestionsContainer.innerHTML = data.map(item => `
+                                    <div class="search-suggestion" onclick="selectSuggestion('${item.name.replace(/'/g, "\\'")}', '${inputId}')">
+                                        <div>${highlightMatch(item.name, query)}</div>
+                                        <div class="suggestion-author">by ${highlightMatch(item.author, query)}</div>
+                                    </div>
+                                `).join('');
+                                suggestionsContainer.style.display = 'block';
+                            } else {
+                                suggestionsContainer.style.display = 'none';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Search error:', error);
+                            suggestionsContainer.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+
+            // Show suggestions when focusing on search input
+            searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length >= 2) {
+                    suggestionsContainer.style.display = 'block';
+                }
+            });
+
+            // Handle keyboard navigation
+            searchInput.addEventListener('keydown', function(e) {
+                const suggestions = suggestionsContainer.querySelectorAll('.search-suggestion');
+                const current = suggestionsContainer.querySelector('.search-suggestion.highlighted');
+                
+                if (suggestions.length > 0 && suggestionsContainer.style.display !== 'none') {
+                    switch(e.key) {
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            if (!current) {
+                                suggestions[0].classList.add('highlighted');
+                            } else {
+                                current.classList.remove('highlighted');
+                                const next = current.nextElementSibling || suggestions[0];
+                                next.classList.add('highlighted');
+                            }
+                            break;
+                            
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            if (!current) {
+                                suggestions[suggestions.length - 1].classList.add('highlighted');
+                            } else {
+                                current.classList.remove('highlighted');
+                                const prev = current.previousElementSibling || suggestions[suggestions.length - 1];
+                                prev.classList.add('highlighted');
+                            }
+                            break;
+                            
+                        case 'Enter':
+                            if (current) {
+                                e.preventDefault();
+                                selectSuggestion(current.querySelector('div').textContent, inputId);
+                            }
+                            break;
+                            
+                        case 'Escape':
+                            suggestionsContainer.style.display = 'none';
+                            break;
+                    }
+                }
+            });
+        }
+    }
+
+    // Setup both search inputs
+    setupSearch('searchInput', 'searchSuggestions');
+    setupSearch('sidebarSearchInput', 'sidebarSearchSuggestions');
+});
+
+// Helper functions for search
+function selectSuggestion(value, inputId) {
+    const searchInput = document.getElementById(inputId);
+    const suggestionsContainer = document.getElementById(inputId === 'searchInput' ? 'searchSuggestions' : 'sidebarSearchSuggestions');
+    searchInput.value = value;
+    suggestionsContainer.style.display = 'none';
+    searchInput.closest('form').submit();
+}
+
+function highlightMatch(text, query) {
+    if (!text) return '';
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<strong>$1</strong>');
+}
+</script>
+
+{% block scripts %}{% endblock %}
 </body>
 </html>

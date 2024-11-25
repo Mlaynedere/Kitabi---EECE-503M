@@ -52,11 +52,12 @@
                                 </td>
                                 <td>
                                     <button type="button" 
-                                            class="btn btn-sm btn-primary"
-                                            onclick="viewReturnDetails('{{ return.id }}', true)"
-                                            title="View Details">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
+                                    class="btn btn-sm btn-primary"
+                                    data-is-admin="{{ current_user.is_admin|tojson }}"
+                                    data-return-id="{{ return.id }}"
+                                    title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -96,32 +97,62 @@
 </div>
 
 {% endblock %}
-
 {% block scripts %}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all view details buttons
+    document.querySelectorAll('.btn-primary[data-return-id]').forEach(button => {
+        button.addEventListener('click', function() {
+            const returnId = this.dataset.returnId;
+            const isAdmin = JSON.parse(this.dataset.isAdmin);
+            viewReturnDetails(returnId, isAdmin);
+        });
+    });
+});
+
 function viewReturnDetails(returnId, isAdmin) {
     const modal = new bootstrap.Modal(document.getElementById('returnDetailsModal'));
     const content = document.getElementById('returnDetailsContent');
+    
+    // Show loading state
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
     modal.show();
 
-    let url = '/return-details/customer/' + returnId;  // Default to customer route
-
-    if (isAdmin) {
-        url = '/return-details/admin/' + returnId;  // If it's an admin, use the admin route
-    }
+    // Determine the correct URL based on user type
+    const url = isAdmin ? 
+        `/return-details/admin/${returnId}` : 
+        `/return-details/customer/${returnId}`;
 
     fetch(url)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 content.innerHTML = generateReturnDetailsHTML(data.return);
             } else {
-                content.innerHTML = '<div class="alert alert-danger mb-0">Error loading return details</div>';
+                content.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        ${data.error || 'Error loading return details'}
+                    </div>`;
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            content.innerHTML = '<div class="alert alert-danger mb-0">Error loading return details</div>';
+            content.innerHTML = `
+                <div class="alert alert-danger mb-0">
+                    Error loading return details. Please try again later.
+                </div>`;
         });
 }
 
@@ -170,7 +201,7 @@ function generateReturnDetailsHTML(returnData) {
 }
 
 function getStatusBadgeColor(status) {
-    switch(status) {
+    switch(status.toLowerCase()) {  // Added toLowerCase() for case-insensitive matching
         case 'pending': return 'warning';
         case 'approved': return 'success';
         case 'rejected': return 'danger';

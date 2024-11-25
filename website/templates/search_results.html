@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block body %}
+<div class="container my-4">
+    <h4 class="mb-4">
+        Search Results for "{{ query }}"
+        <small class="text-muted">({{ results|length }} results)</small>
+    </h4>
+
+    {% if results %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            {% for product in results %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        {% if product.product_picture %}
+                            <img src="{{ url_for('admin.get_image', filename=product.product_picture.split('/')[-1]) }}" 
+                                 class="card-img-top" 
+                                 alt="{{ product.product_name }}"
+                                 style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <img src="{{ url_for('admin.get_image', filename='placeholder.jpg') }}" 
+                                 class="card-img-top" 
+                                 alt="placeholder"
+                                 style="height: 200px; object-fit: cover;">
+                        {% endif %}
+                        
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.product_name }}</h5>
+                            <p class="card-text text-muted">{{ product.author }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if product.flash_sale %}
+                                        <span class="text-decoration-line-through text-muted">${{ "%.2f"|format(product.current_price) }}</span>
+                                        <span class="text-danger ms-2">${{ "%.2f"|format(product.discounted_price) }}</span>
+                                    {% else %}
+                                        <span>${{ "%.2f"|format(product.current_price) }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-warning">
+                                    {% for i in range(product.rating|int) %}
+                                        <i class="fas fa-star"></i>
+                                    {% endfor %}
+                                    {% if product.rating % 1 >= 0.5 %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            {% if product.in_stock > 0 %}
+                            <form action="{{ url_for('views.add_to_cart', item_id=product.id) }}" method="POST">                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-secondary w-100" disabled>Out of Stock</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5>No results found</h5>
+            <p class="text-muted">Try different keywords or check your spelling</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

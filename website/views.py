@@ -10,6 +10,8 @@ from . import db
 from intasend import APIService
 from .forms import CustomerReturnForm
 from .utils import get_categories_dict
+from sqlalchemy import or_
+
 
 views = Blueprint('views', __name__)
 
@@ -432,3 +434,57 @@ def filtered_products(category, subcategory):
         cart_items=cart_items,
         cart=Cart.query.filter_by(customer_link=current_user.id).all() if current_user.is_authenticated else []
     )
+
+
+
+@views.route('/search')
+def search():
+    query = request.args.get('query', '')
+    if not query:
+        return redirect(url_for('views.home'))
+        
+    # Search in multiple fields
+    results = Product.query.filter(
+        or_(
+            Product.product_name.ilike(f'%{query}%'),
+            Product.author.ilike(f'%{query}%'),
+        )
+    ).all()
+    
+    # Get categories for sidebar
+    categories = {}
+    all_categories = Category.query.all()
+    for category in all_categories:
+        subcategories = [sc.name for sc in category.subcategories]
+        categories[category.name] = subcategories
+
+    return render_template(
+        'search_results.html',
+        query=query,
+        results=results,
+        categories=categories
+    )
+
+
+@views.route('/search-suggestions')
+def search_suggestions():
+    query = request.args.get('query', '').lower()
+    if not query:
+        return jsonify([])
+    
+    # Search for matching products
+    suggestions = Product.query.filter(
+        or_(
+            Product.product_name.ilike(f'%{query}%'),
+            Product.author.ilike(f'%{query}%')
+        )
+    ).limit(5).all()  # Limit to 5 suggestions
+    
+    # Format the results
+    results = [{
+        'id': product.id,
+        'name': product.product_name,
+        'author': product.author
+    } for product in suggestions]
+    
+    return jsonify(results)
