@@ -19,3 +19,4 @@ python-magic==0.4.27
 validators==0.22.0
 intasend-python==1.1.2
 flask-migrate==4.0.7
+pandas==2.2.3
