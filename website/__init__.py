@@ -218,6 +218,32 @@ def create_app():
     def to_json(value):
         return json.dumps(value)
     
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        return response
+    @app.after_request
+    def set_csp_header(response):
+        csp_policy = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "style-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "  # Allow self-hosted and inline images
+            "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; "  # Allow fonts from cdnjs, Google Fonts, and inline
+            "object-src 'none'; "  # Disallow plugins
+            "frame-ancestors 'self'; "  # Prevent clickjacking by allowing only self
+            "base-uri 'self'; "  # Prevent <base> tag from being manipulated
+            "form-action 'self';"  # Restrict form submissions to the same origin
+        )
+        response.headers['Content-Security-Policy'] = csp_policy
+        return response
+
+
+    
+    
     @app.template_filter('time_ago')
     def time_ago(dt):
         now = datetime.utcnow()

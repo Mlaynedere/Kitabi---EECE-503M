@@ -159,7 +159,7 @@ body.admin-user .main-content {
 /* Hero Section */
 .hero {
     background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-                url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?ixlib=rb-4.0.3') center/cover;
+                url('/static/images/library.jpeg') center/cover;
     height: 60vh;
     position: relative;
     background-size: cover;
