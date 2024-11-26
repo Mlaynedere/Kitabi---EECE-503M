@@ -231,3 +231,27 @@ $(document).ready(function() {
         }
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Sidebar toggle functionality
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar, .admin-sidebar');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show-sidebar');
+        });
+    }
+
+    // Admin nav active state
+    if (document.querySelector('.admin-sidebar')) {
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.admin-nav-item');
+        
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+    }
+});

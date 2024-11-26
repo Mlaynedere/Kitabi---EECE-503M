@@ -274,6 +274,10 @@ body.admin-user .main-content {
     right: -20px;
 }
 
+.custom-width-40 {
+    width: 40%;
+}
+
 .owl-carousel .book-card {
     background: white;
     border-radius: 8px;
