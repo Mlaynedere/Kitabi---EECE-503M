@@ -78,12 +78,8 @@ class Customer(db.Model, UserMixin):
     
     def has_permission(self, permission):
         """Check if user has specific permission through any of their roles"""
-        if not self.roles:
-            return False
         for role in self.roles:
-            # No need to parse JSON as it's already the correct type
-            permissions = role.permissions or []
-            if permission in permissions:
+            if permission in (role.permissions or []):
                 return True
         return False
     
