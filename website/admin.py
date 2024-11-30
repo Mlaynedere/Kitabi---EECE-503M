@@ -3,7 +3,7 @@ from flask_limiter import Limiter
 from flask_login import login_required, current_user
 from flask_limiter.util import get_remote_address
 from website.security import safe_query
-from .decorators import admin_required, check_permission
+from .decorators import admin_required, check_permission, jwt_required
 from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm, MembershipTierForm, AwardPointsForm, BulkUploadForm
 from werkzeug.utils import secure_filename
 from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return, MembershipTier
@@ -378,7 +378,6 @@ def display_customers():
     return render_template('customers.html', customers=customers)
 
 @admin.route('/admin-page')
-@login_required
 @admin_required
 def admin_page():
     try:
@@ -398,7 +397,8 @@ def admin_page():
         ).limit(5).all()
         pending_returns = Return.query.filter_by(status='pending').count()
 
-        return render_template('admin.html',
+        return render_template(
+            'admin.html',
             total_orders=total_orders,
             total_revenue="{:,.2f}".format(total_revenue),
             low_stock_count=low_stock_count,
@@ -410,6 +410,7 @@ def admin_page():
         flash('Error loading dashboard statistics', 'error')
         print(f"Error in admin dashboard: {e}")
         return render_template('admin.html')
+    
 @admin.route('/inventory-management')
 @login_required
 @admin_required

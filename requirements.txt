@@ -21,3 +21,4 @@ intasend-python==1.1.2
 flask-migrate==4.0.7
 pandas==2.2.3
 PyJWT==2.10.1
+pillow==11.0.0

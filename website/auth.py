@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, flash, redirect, request, url_for
+from flask import Blueprint, render_template, flash, redirect, request, url_for, jsonify
 from flask_limiter import Limiter
 from .forms import LoginForm, SignUpForm, PasswordChangeForm
 from .models import Customer, MembershipTier
@@ -6,7 +6,8 @@ from . import db, limiter
 from flask_login import login_user, login_required, logout_user, current_user
 from .utils import get_categories_dict
 from .security import password_meets_requirements, sanitize_input
-from flask_limiter.util import get_remote_address
+from werkzeug.security import check_password_hash
+from .jwt_utils import create_access_token
 
 auth = Blueprint('auth', __name__)
 
@@ -90,25 +91,41 @@ def sign_up():
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('views.home'))
     form = LoginForm()
+    if request.method == 'GET':
+        return render_template('login.html', form=form)
+    
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
         
         user = Customer.query.filter_by(email=email).first()
-        if user:
-            if user.check_password(password=password):
-                login_user(user)
-                flash('Logged in successfully!', category='success')
-                return redirect(url_for('views.home'))
-            else:
-                flash('Invalid credentials, please try again.', category='error')
+        if user and check_password_hash(user.password_hash, password):
+            # Log in the user and generate a JWT token
+            login_user(user)
+            access_token = create_access_token(user_id=user.id)
+
+            # Check the user's role for redirection
+            roles = [role.name.lower() for role in user.roles]
+            redirect_url = url_for('admin.admin_page') if any(role in ['super admin', 'product manager', 'order manager'] for role in roles) else url_for('views.home')
+            response = jsonify({
+                'message': 'Logged in successfully!',
+                'Authorization': access_token,
+                'redirect_url': redirect_url
+            })
+            # Set token in cookie as well
+            response.set_cookie(
+                'jwt_token',
+                access_token,
+                httponly=True,
+                secure=True,
+                samesite='Strict'
+            )
+            return response, 200
         else:
-            flash('Email not registered. Please sign up first.', category='error')
-    
-    return render_template('login.html', form=form)
+            return jsonify({'error': 'Invalid credentials, please try again.'}), 401
+
+    return jsonify({'error': 'Invalid form submission.'}), 400
 
 @auth.route('/logout', methods=['GET', 'POST'])
 @limiter.limit("10 per minute")

@@ -17,6 +17,7 @@ login_manager = LoginManager()
 migrate = Migrate()
 csrf = CSRFProtect()
 DB_NAME = 'database.sqlite3'
+TokenExpiryTime = 30 # Time in minutes for JWT to expire
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"]
@@ -191,7 +192,7 @@ def create_app():
     from .admin import admin
     from .auth import auth
     
-    app.config['SECRET_KEY'] = 'test12345'
+    app.config['SECRET_KEY'] = '09a2d47b626ac15b9328cd8268d6754b1e84c212637427859dd18570b94ddec10c6bf2731c93d0121fb9343e4c3ed632905300c507f3f06ab89b0776cc648bdad3f0fe77ca9a270d2e318f7dd0202afddce32c914daaf7a5dff44039182748da2b857c45a7063c18f15e46031d369909db05d933e804f921e3316ee97c38adae079da8f1f8d9763fc66cf8a11802f56e4fa5cf12c1e4aa32fb0a3591fbbbf268c24cc12883dd2bba75ecc2894903d8e548db6cba8f25d9978e6052d2d74b7cccb2b91280c3947fce0652e77396c28c91812d7016ccb3ec07719b9bdf40e095f1537ac41ca8329a2a2363e997a2e8efddbc49b02108e964e6f3c816201d047f4b'
     app.config['WTF_CSRF_SECRET_KEY'] = 'uysdguy&*%)*719640`9631gfsdljkfbhq289p74198-4610hjidb7^*&580&^^%)&%(#rogl:i!fydBSUI;T78TP189YTE72)' #Secret Key to sign the CSRF token
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
