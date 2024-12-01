@@ -86,6 +86,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+
 // Show error message
 function showError(message) {
     const notification = createNotification(message, 'error');

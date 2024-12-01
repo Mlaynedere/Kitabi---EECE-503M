@@ -3,7 +3,7 @@ from flask_limiter import Limiter
 from flask_login import login_required, current_user
 from flask_limiter.util import get_remote_address
 from website.security import safe_query
-from .decorators import admin_required, check_permission, jwt_required
+from .decorators import admin_required, require_role
 from .forms import ShopItemsForm, OrderForm, InventoryForm, RoleForm, AssignRoleForm, ProcessReturnForm, MembershipTierForm, AwardPointsForm, BulkUploadForm
 from werkzeug.utils import secure_filename
 from .models import Product, Order, Customer, Category, SubCategory, StockHistory, ActivityLog, Role, Return, MembershipTier
@@ -13,6 +13,10 @@ from datetime import datetime
 import os
 import json
 import pandas as pd
+import requests
+from urllib.parse import urlparse
+from io import StringIO
+import csv
 
 admin = Blueprint('admin', __name__)
 
@@ -42,14 +46,14 @@ def get_image(filename):
     return send_from_directory('../media', filename)
 
 @admin.route('/add-shop-items', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_products')
+@require_role('Super Admin', 'Product Manager')
 @limiter.limit("50 per hour")
 def add_shop_items():
     form = ShopItemsForm()
     
     try:
+        print("Request method:", request.method)
+
         # Get all categories and subcategories
         categories = Category.query.all()
         subcategories = SubCategory.query.all()
@@ -59,20 +63,70 @@ def add_shop_items():
         form.subcategory.choices = [(subcategory.id, subcategory.name) for subcategory in subcategories]
 
         if form.validate_on_submit():
+            print("Form validated successfully")
             try:
-                # Extract form data
-                product_name = form.product_name.data
-                author = form.author.data
-                rating = form.rating.data
-                current_price = form.current_price.data
-                in_stock = form.in_stock.data
-                flash_sale = form.flash_sale.data
-                promotion_percentage = form.promotion_percentage.data
-                category_id = form.category.data
-                subcategory_id = form.subcategory.data
+                # # Extract form data
+                
+                # product_name = form.product_name.data
+                # author = form.author.data
+                # rating = form.rating.data
+                # current_price = form.current_price.data
+                # in_stock = form.in_stock.data
+                # flash_sale = form.flash_sale.data
+                # promotion_percentage = form.promotion_percentage.data
+                # category_id = form.category.data
+                # subcategory_id = form.subcategory.data
 
-                # Calculate discounted price
-                discounted_price = current_price - (current_price * promotion_percentage / 100)
+                # # Calculate discounted price
+                # discounted_price = current_price - (current_price * promotion_percentage / 100)
+
+                # # Handle file upload
+                # file = form.product_picture.data
+                # print("Form data:", product_name)  
+                
+                # if file and allowed_file(file.filename):
+                #     filename = secure_filename(file.filename)
+                #     file_path = os.path.join('./media', filename)
+                    
+                #     # Ensure media directory exists
+                #     os.makedirs('./media', exist_ok=True)
+                    
+                #     # Save the file
+                #     file.save(file_path)
+                # else:
+                #     flash('Invalid file type or no file provided', 'error')
+                #     return render_template('add_shop_items.html', form=form, 
+                #                         categories=categories, 
+                #                         subcategories=subcategories)
+
+                # # Create new product instance
+                # new_shop_item = Product(
+                #     product_name=product_name,
+                #     author=author,
+                #     rating=rating,
+                #     current_price=current_price,
+                #     in_stock=in_stock,
+                #     flash_sale=flash_sale,
+                #     promotion_percentage=promotion_percentage,
+                #     discounted_price=discounted_price,
+                #     product_picture=file_path,
+                #     category_id=category_id,
+                #     subcategory_id=subcategory_id,
+                #     warehouse_location='Main Warehouse',  # Default value
+                #     low_stock_threshold=10  # Default value
+                # )
+                product_data = {
+                    'product_name': form.product_name.data,
+                    'author': form.author.data,
+                    'rating': form.rating.data,
+                    'current_price': form.current_price.data,
+                    'in_stock': form.in_stock.data,
+                    'flash_sale': form.flash_sale.data,
+                    'promotion_percentage': form.promotion_percentage.data,
+                    'category_id': form.category.data,
+                    'subcategory_id': form.subcategory.data
+                }
+                print("Form data:", product_data)  # Debug print
 
                 # Handle file upload
                 file = form.product_picture.data
@@ -85,32 +139,41 @@ def add_shop_items():
                     
                     # Save the file
                     file.save(file_path)
+                    print("File saved to:", file_path)  # Debug print
                 else:
+                    print("Invalid file or no file provided")  # Debug print
                     flash('Invalid file type or no file provided', 'error')
                     return render_template('add_shop_items.html', form=form, 
                                         categories=categories, 
                                         subcategories=subcategories)
 
+                # Calculate discounted price
+                discounted_price = product_data['current_price'] - (
+                    product_data['current_price'] * product_data['promotion_percentage'] / 100
+                )
+
                 # Create new product instance
                 new_shop_item = Product(
-                    product_name=product_name,
-                    author=author,
-                    rating=rating,
-                    current_price=current_price,
-                    in_stock=in_stock,
-                    flash_sale=flash_sale,
-                    promotion_percentage=promotion_percentage,
+                    product_name=product_data['product_name'],
+                    author=product_data['author'],
+                    rating=product_data['rating'],
+                    current_price=product_data['current_price'],
+                    in_stock=product_data['in_stock'],
+                    flash_sale=product_data['flash_sale'],
+                    promotion_percentage=product_data['promotion_percentage'],
                     discounted_price=discounted_price,
                     product_picture=file_path,
-                    category_id=category_id,
-                    subcategory_id=subcategory_id,
-                    warehouse_location='Main Warehouse',  # Default value
-                    low_stock_threshold=10  # Default value
+                    category_id=product_data['category_id'],
+                    subcategory_id=product_data['subcategory_id'],
+                    warehouse_location='Main Warehouse',
+                    low_stock_threshold=10
                 )
+                
 
                 # Add to database
                 db.session.add(new_shop_item)
                 db.session.commit()
+                print("Product added successfully")  # Debug print
 
                 # Log the activity
                 log_activity(
@@ -118,16 +181,17 @@ def add_shop_items():
                     entity_type='product',
                     entity_id=new_shop_item.id,
                     details={
-                        'product_name': product_name,
-                        'author': author,
-                        'price': current_price,
-                        'stock': in_stock,
-                        'category_id': category_id,
-                        'subcategory_id': subcategory_id,
-                        'promotion': promotion_percentage if promotion_percentage else 0
+                        'product_name': product_data['product_name'],
+                        'author': product_data['author'],
+                        'price': product_data['current_price'],
+                        'stock': product_data['in_stock'],
+                        'category_id': product_data['category_id'],
+                        'subcategory_id': product_data['subcategory_id'],
+                        'promotion': product_data['promotion_percentage'] if product_data['promotion_percentage'] else 0
                     }
                 )
 
+                product_name = product_data['product_name']
                 flash(f'{product_name} added successfully!', 'success')
                 return redirect(url_for('admin.shop_items'))
 
@@ -135,13 +199,13 @@ def add_shop_items():
                 db.session.rollback()
                 print(f"Error adding product: {e}")
                 flash('An error occurred while adding the product. Please try again.', 'error')
+                return render_template('add_shop_items.html', form=form, 
+                                    categories=categories, 
+                                    subcategories=subcategories)
                 
         elif request.method == 'POST':
-            log_activity(
-                action='failed_product_creation',
-                entity_type='product',
-                details={'form_errors': form.errors}
-            )
+            print("Form validation errors:", form.errors)  # Debug print
+            flash('Please fix the form errors and try again.', 'error')
             
         return render_template('add_shop_items.html', 
                              form=form, 
@@ -149,16 +213,14 @@ def add_shop_items():
                              subcategories=subcategories)
 
     except Exception as e:
-        print(f"Error in add_shop_items: {e}")
+        print(f"Error in add_shop_items: {str(e)}")  # Debug print
         flash('An unexpected error occurred. Please try again.', 'error')
         return redirect(url_for('admin.admin_page'))
 
 
 
 @admin.route('/shop-items', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_products')
+@require_role('Super Admin', 'Product Manager')
 def shop_items():
     items = Product.query.order_by(Product.date_added).all()
     low_stock_items = [item for item in items if item.in_stock < 10]
@@ -166,9 +228,7 @@ def shop_items():
 
 
 @admin.route('/update-item/<int:item_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_products')
+@require_role('Super Admin', 'Product Manager')
 @limiter.limit("50 per hour") 
 def update_item(item_id):
     try:
@@ -300,9 +360,7 @@ def update_item(item_id):
         return render_template('404.html')
 
 @admin.route('/delete-item/<int:item_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_products')
+@require_role('Super Admin', 'Product Manager')
 @limiter.limit("20 per hour")
 def delete_item(item_id):
     try:
@@ -326,18 +384,14 @@ def delete_item(item_id):
 
 
 @admin.route('/view-orders')
-@login_required
-@admin_required
-@check_permission('manage_orders')
+@require_role('Super Admin', 'Order Manager')
 def order_view():
     orders = Order.query.all()
     return render_template('view_orders.html', orders=orders)
 
 
 @admin.route('/update-order/<int:order_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_orders')
+@require_role('Super Admin', 'Order Manager')
 @limiter.limit("30 per hour")
 def update_order(order_id):
     form = OrderForm()
@@ -370,9 +424,7 @@ def update_order(order_id):
 
 
 @admin.route('/customers')
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def display_customers():
     customers = Customer.query.all()
     return render_template('customers.html', customers=customers)
@@ -412,9 +464,7 @@ def admin_page():
         return render_template('admin.html')
     
 @admin.route('/inventory-management')
-@login_required
-@admin_required
-@check_permission('manage_inventory')
+@require_role('Super Admin', 'Product Manager')
 def inventory_management():
     try:
         # Get all products with their current stock levels
@@ -467,9 +517,7 @@ def inventory_management():
         return redirect(url_for('admin.admin_page'))
     
 @admin.route('/inventory-report')
-@login_required
-@admin_required
-@check_permission('view_reports')
+@require_role('Super Admin')
 def inventory_report():
     try:
         # Basic stats
@@ -555,7 +603,7 @@ def inventory_report():
         return render_template('404.html')
 
 @admin.route('/update-inventory/<int:product_id>', methods=['GET', 'POST'])
-@login_required
+@require_role('Super Admin', 'Product Manager')
 def update_inventory(product_id):
     if current_user.id == 1:
         product = Product.query.get_or_404(product_id)
@@ -613,7 +661,7 @@ def update_inventory(product_id):
 from sqlalchemy import text
 
 @admin.route('/get-subcategories/<int:category_id>')
-@login_required
+@require_role('Super Admin', 'Product Manager')
 @limiter.limit("30 per minute", key_func=get_remote_address)
 def get_subcategories(category_id):
     try:
@@ -646,9 +694,7 @@ def get_subcategories(category_id):
         return jsonify({'error': 'Internal server error'}), 500
     
 @admin.route('/roles', methods=['GET'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def manage_roles():
     try:
         roles = Role.query.all()
@@ -679,10 +725,9 @@ def manage_roles():
         print(f"Error in manage_roles: {str(e)}")
         flash('Error loading roles', 'error')
         return redirect(url_for('admin.admin_page'))
+    
 @admin.route('/roles/add', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def add_role():
     form = RoleForm()
     
@@ -720,9 +765,7 @@ def add_role():
     return render_template('add_role.html', form=form)
 
 @admin.route('/users/<int:user_id>/roles', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def assign_roles(user_id):
     user = Customer.query.get_or_404(user_id)
     form = AssignRoleForm()
@@ -754,17 +797,13 @@ def assign_roles(user_id):
     return render_template('assign_roles.html', form=form, user=user)
 
 @admin.route('/activity-logs')
-@login_required
-@admin_required
-@check_permission('view_reports')
+@require_role('Super Admin')
 def view_activity_logs():
     logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).all()
     return render_template('activity_logs.html', logs=logs)
 
 @admin.route('/returns-management')
-@login_required
-@admin_required
-@check_permission('manage_returns')
+@require_role('Super Admin', 'Order Manager')
 def returns_management():
     try:
         returns = Return.query.options(
@@ -780,9 +819,7 @@ def returns_management():
         return redirect(url_for('admin.admin_page'))
 
 @admin.route('/process-return/<int:return_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_returns')
+@require_role('Super Admin', 'Order Manager')
 def process_return(return_id):
     try:
         return_request = Return.query.get_or_404(return_id)
@@ -860,9 +897,7 @@ def process_return(return_id):
         return redirect(url_for('admin.returns_management'))
 
 @admin.route('/return-details/admin/<int:return_id>')
-@login_required
-@admin_required
-@check_permission('manage_returns')
+@require_role('Super Admin', 'Order Manager')
 def return_details(return_id):
     try:
         return_request = Return.query.get_or_404(return_id)
@@ -890,17 +925,13 @@ def return_details(return_id):
     
 
 @admin.route('/membership-tiers', methods=['GET'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def membership_tiers():
     tiers = MembershipTier.query.all()
     return render_template('membership_tiers.html', tiers=tiers)
 
 @admin.route('/membership-tiers/add', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 @limiter.limit("10 per hour")
 def add_membership_tier():
     try:
@@ -946,9 +977,7 @@ def add_membership_tier():
         return redirect(url_for('membership_tiers'))
     
 @admin.route('/membership-tiers/edit/<int:tier_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 @limiter.limit("20 per hour")
 def edit_membership_tier(tier_id):
     tier = MembershipTier.query.get_or_404(tier_id)
@@ -978,10 +1007,9 @@ def edit_membership_tier(tier_id):
             print(f"Error updating tier: {e}")
     
     return render_template('edit_membership_tier.html', form=form, tier=tier)
+
 @admin.route('/customers/points', methods=['GET'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 @limiter.limit("50 per hour")
 def manage_customer_points():
     # Get all customers with their points and tiers
@@ -989,9 +1017,7 @@ def manage_customer_points():
     return render_template('customer_points_list.html', customers=customers)
 
 @admin.route('/customers/points/<int:customer_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_users')
+@require_role('Super Admin')
 def manage_customer_points_detail(customer_id):
     customer = Customer.query.get_or_404(customer_id)
     form = AwardPointsForm()
@@ -1025,14 +1051,6 @@ def manage_customer_points_detail(customer_id):
     return render_template('manage_points.html', form=form, customer=customer)
 
 
-import os
-import requests
-from urllib.parse import urlparse
-from werkzeug.utils import secure_filename
-from flask import Blueprint, request, flash, redirect, url_for, render_template
-from io import StringIO
-import csv
-
 def validate_csv_headers(headers):
     """Validate that all required headers are present in the CSV file."""
     required_headers = {
@@ -1041,9 +1059,6 @@ def validate_csv_headers(headers):
         'promotion_percentage', 'flash_sale', 'product_picture'
     }
     return required_headers.issubset(set(headers))
-
-from urllib.parse import urlparse
-from werkzeug.utils import secure_filename
 
 def download_image(image_url, media_path):
     """Download image from URL with fallback to placeholder."""
@@ -1179,9 +1194,7 @@ def generate_csv_template():
     return df.to_csv(index=False)
 
 @admin.route('/bulk-upload', methods=['GET', 'POST'])
-@login_required
-@admin_required
-@check_permission('manage_products')
+@require_role('Super Admin', 'Product Manager')
 @limiter.limit("10 per hour") 
 def bulk_upload():
     form = BulkUploadForm()
@@ -1286,8 +1299,7 @@ def generate_csv_template():
     return df.to_csv(index=False)
 
 @admin.route('/download-template')
-@login_required
-@admin_required
+@require_role('Super Admin', 'Product Manager')
 def download_template():
     """Download a CSV template for bulk uploads."""
     template = generate_csv_template()

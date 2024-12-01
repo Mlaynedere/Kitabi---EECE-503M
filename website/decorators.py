@@ -48,27 +48,6 @@ def require_role(*roles):
         return decorated_function
     return decorator
 
-def check_permission(permission):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated or not current_user.has_permission(permission):
-                log_activity(
-                    action='permission_denied',
-                    entity_type='permission',
-                    details={
-                        'route': request.path,
-                        'permission': permission,
-                        'user': current_user.username if current_user.is_authenticated else 'Guest',
-                        'ip_address': request.remote_addr
-                    }
-                )
-                flash('Access denied. Required permission not found.', 'error')
-                return redirect(url_for('views.home'))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
 def jwt_required(f):
     """
     Decorator to protect routes with JWT authentication.

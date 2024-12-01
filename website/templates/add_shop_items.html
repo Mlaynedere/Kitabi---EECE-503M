@@ -128,53 +128,70 @@
 </div>
 
 <script>
-   document.getElementById('category-select').addEventListener('change', function() {
-    const categoryId = this.value;
-    const subcategorySelect = document.getElementById('subcategory-select');
+   // Form validation for add-shop-items form
+document.addEventListener('DOMContentLoaded', function() {
+    const addShopItemsForm = document.querySelector('form[action="/add-shop-items"]');
     
-    // Clear existing subcategory options
-    subcategorySelect.innerHTML = '<option value="">Loading subcategories...</option>';
-    
-    if (categoryId) {
-        // Get the current URL path
-        const currentPath = window.location.pathname;
-        // Construct the URL relative to the current path
-        const fetchUrl = currentPath.includes('/admin') ? 
-            `/admin/get-subcategories/${categoryId}` : 
-            `/get-subcategories/${categoryId}`;
+    if (addShopItemsForm) {
+        addShopItemsForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
             
-        fetch(fetchUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                subcategorySelect.innerHTML = '<option value="">Select Subcategory</option>';
+            try {
+                // Get CSRF token
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                 
-                if (data.subcategories && Array.isArray(data.subcategories)) {
-                    if (data.subcategories.length === 0) {
-                        subcategorySelect.innerHTML = '<option value="">No subcategories available</option>';
-                    } else {
-                        data.subcategories.forEach(subcategory => {
-                            const option = document.createElement('option');
-                            option.value = subcategory.id;
-                            option.textContent = subcategory.name;
-                            subcategorySelect.appendChild(option);
-                        });
-                    }
+                // Create FormData object
+                const formData = new FormData(this);
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adding Product...';
+                
+                // Make the request
+                const response = await fetch('/add-shop-items', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: formData
+                });
+                
+                const result = await response.text();
+                
+                if (response.ok) {
+                    showSuccess('Product added successfully!');
+                    // Redirect to shop items page after successful addition
+                    window.location.href = '/shop-items';
                 } else {
-                    throw new Error('Invalid data format received from server');
+                    throw new Error('Failed to add product');
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error:', error);
-                subcategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
-            });
-    } else {
-        subcategorySelect.innerHTML = '<option value="">Select category first</option>';
+                showError(error.message || 'Failed to add product');
+            } finally {
+                // Reset button state
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            }
+        });
     }
+    
+    // Other form event listeners...
+    const inputs = document.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+            validateInput(this);
+        });
+    });
 });
 </script>
 {% endblock %}

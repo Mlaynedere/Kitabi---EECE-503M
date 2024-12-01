@@ -10,6 +10,7 @@ from . import db
 from intasend import APIService
 from .forms import CustomerReturnForm
 from .utils import get_categories_dict
+from .decorators import jwt_required
 from sqlalchemy import or_
 
 
@@ -40,7 +41,7 @@ def home():
                          categories=get_categories_dict())
 
 @views.route('/add-to-cart/<int:item_id>')
-@login_required
+@jwt_required
 def add_to_cart(item_id):
     item_to_add = Product.query.get(item_id)
     # Get the product's stock
@@ -81,7 +82,7 @@ def add_to_cart(item_id):
     return redirect(request.referrer)
 
 @views.route('/cart')
-@login_required
+@jwt_required
 def show_cart():
     cart = Cart.query.filter_by(customer_link=current_user.id).all()
     amount = 0
@@ -94,7 +95,7 @@ def show_cart():
                          total=amount+3,
                          categories=get_categories_dict())
 @views.route('/pluscart')
-@login_required
+@jwt_required
 def plus_cart():
     if request.method == 'GET':
         cart_id = request.args.get('cart_id')
@@ -119,7 +120,7 @@ def plus_cart():
 
 
 @views.route('/minuscart')
-@login_required
+@jwt_required
 def minus_cart():
     if request.method == 'GET':
         cart_id = request.args.get('cart_id')
@@ -144,7 +145,7 @@ def minus_cart():
 
 
 @views.route('removecart')
-@login_required
+@jwt_required
 def remove_cart():
     if request.method == 'GET':
         cart_id = request.args.get('cart_id')
@@ -196,7 +197,7 @@ def secure_payment_call(phone_number, email, amount, narrative):
         raise
 
 @views.route('/place-order')
-@login_required
+@jwt_required
 @limiter.limit("10 per minute")
 def place_order():
     try:
@@ -300,14 +301,14 @@ def place_order():
     
 
 @views.route('/orders')
-@login_required
+@jwt_required
 def order():
     orders = Order.query.filter_by(customer_link=current_user.id).all()
     return render_template('orders.html', 
                          orders=orders,
                          categories=get_categories_dict())
 @views.route('/request-return/<int:order_id>', methods=['GET', 'POST'])
-@login_required
+@jwt_required
 def request_return(order_id):
     try:
         # Fetch order or throw 404 if not found
@@ -353,7 +354,7 @@ def request_return(order_id):
 
 
 @views.route('/my-returns')
-@login_required
+@jwt_required
 def my_returns():
     try:
         returns = Return.query.filter_by(customer_link=current_user.id)\
@@ -368,7 +369,7 @@ def my_returns():
         return redirect(url_for('views.home'))
 
 @views.route('/return-details/customer/<int:return_id>')
-@login_required
+@jwt_required
 def view_return_details(return_id):
     try:
         return_request = Return.query.get_or_404(return_id)
