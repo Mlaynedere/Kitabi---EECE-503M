@@ -1,7 +1,7 @@
 # Kitabi---EECE-503M
 
 
-This repository contains a Flask-based web application with comprehensive security implementations, ensuring the integrity, confidentiality, and availability of the application and its data. Below, you will find an overview of the implemented security measures, development setup, deployment best practices, and recommendations for extending this application.
+This repository contains a Flask-based web application with comprehensive security implementations, focused on the deployment of a secure backend. Below, you will find an overview of the implemented security measures, development setup, and setup instructions.
 
 ---
 
